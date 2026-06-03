@@ -5,15 +5,14 @@ from scipy.stats import (
     skew,
     kurtosis,
     shapiro,
-    normaltest,
     t
 )
 
 # =====================================================
-# NUMERIC DATA
+# HELPER
 # =====================================================
 
-def get_numeric_data(df):
+def get_numeric_columns(df):
 
     return df.select_dtypes(
         include=np.number
@@ -25,56 +24,97 @@ def get_numeric_data(df):
 
 def descriptive_statistics(df):
 
-    numeric_df = get_numeric_data(df)
+    numeric_df = get_numeric_columns(df)
 
     return numeric_df.describe().T
 
 # =====================================================
-# ADVANCED DESCRIPTIVE STATISTICS
+# MEAN
 # =====================================================
 
-def advanced_statistics(df):
+def mean_values(df):
 
-    numeric_df = get_numeric_data(df)
+    numeric_df = get_numeric_columns(df)
 
-    results = []
+    return numeric_df.mean()
+
+# =====================================================
+# MEDIAN
+# =====================================================
+
+def median_values(df):
+
+    numeric_df = get_numeric_columns(df)
+
+    return numeric_df.median()
+
+# =====================================================
+# MODE
+# =====================================================
+
+def mode_values(df):
+
+    numeric_df = get_numeric_columns(df)
+
+    modes = {}
 
     for col in numeric_df.columns:
 
-        series = numeric_df[col].dropna()
+        mode_series = numeric_df[col].mode()
 
-        results.append({
+        if len(mode_series) > 0:
 
-            "Column": col,
+            modes[col] = mode_series.iloc[0]
 
-            "Count": len(series),
+        else:
 
-            "Mean": series.mean(),
+            modes[col] = np.nan
 
-            "Median": series.median(),
+    return pd.Series(modes)
 
-            "Std": series.std(),
+# =====================================================
+# VARIANCE
+# =====================================================
 
-            "Variance": series.var(),
+def variance_values(df):
 
-            "Min": series.min(),
+    numeric_df = get_numeric_columns(df)
 
-            "Max": series.max(),
+    return numeric_df.var()
 
-            "Range": series.max() - series.min(),
+# =====================================================
+# STANDARD DEVIATION
+# =====================================================
 
-            "Q1": series.quantile(0.25),
+def std_deviation(df):
 
-            "Q3": series.quantile(0.75),
+    numeric_df = get_numeric_columns(df)
 
-            "IQR":
-            series.quantile(0.75)
-            -
-            series.quantile(0.25)
+    return numeric_df.std()
 
-        })
+# =====================================================
+# RANGE
+# =====================================================
 
-    return pd.DataFrame(results)
+def range_values(df):
+
+    numeric_df = get_numeric_columns(df)
+
+    return numeric_df.max() - numeric_df.min()
+
+# =====================================================
+# IQR
+# =====================================================
+
+def iqr_values(df):
+
+    numeric_df = get_numeric_columns(df)
+
+    return (
+        numeric_df.quantile(0.75)
+        -
+        numeric_df.quantile(0.25)
+    )
 
 # =====================================================
 # SKEWNESS
@@ -82,7 +122,7 @@ def advanced_statistics(df):
 
 def skewness_analysis(df):
 
-    numeric_df = get_numeric_data(df)
+    numeric_df = get_numeric_columns(df)
 
     results = []
 
@@ -93,8 +133,11 @@ def skewness_analysis(df):
             "Column": col,
 
             "Skewness":
-            skew(
-                numeric_df[col].dropna()
+            round(
+                skew(
+                    numeric_df[col].dropna()
+                ),
+                4
             )
 
         })
@@ -107,7 +150,7 @@ def skewness_analysis(df):
 
 def kurtosis_analysis(df):
 
-    numeric_df = get_numeric_data(df)
+    numeric_df = get_numeric_columns(df)
 
     results = []
 
@@ -118,8 +161,11 @@ def kurtosis_analysis(df):
             "Column": col,
 
             "Kurtosis":
-            kurtosis(
-                numeric_df[col].dropna()
+            round(
+                kurtosis(
+                    numeric_df[col].dropna()
+                ),
+                4
             )
 
         })
@@ -127,72 +173,163 @@ def kurtosis_analysis(df):
     return pd.DataFrame(results)
 
 # =====================================================
-# VARIANCE
+# PERCENTILES
 # =====================================================
 
-def variance_analysis(df):
+def percentile_summary(df):
 
-    numeric_df = get_numeric_data(df)
+    numeric_df = get_numeric_columns(df)
 
-    return pd.DataFrame({
+    summary = pd.DataFrame({
 
-        "Column":
-        numeric_df.columns,
+        "Q1":
+        numeric_df.quantile(0.25),
 
-        "Variance":
-        numeric_df.var().values
+        "Median":
+        numeric_df.quantile(0.50),
+
+        "Q3":
+        numeric_df.quantile(0.75),
+
+        "P90":
+        numeric_df.quantile(0.90),
+
+        "P95":
+        numeric_df.quantile(0.95)
 
     })
 
-# =====================================================
-# STANDARD DEVIATION
-# =====================================================
-
-def standard_deviation_analysis(df):
-
-    numeric_df = get_numeric_data(df)
-
-    return pd.DataFrame({
-
-        "Column":
-        numeric_df.columns,
-
-        "Standard_Deviation":
-        numeric_df.std().values
-
-    })
+    return summary
 
 # =====================================================
-# MISSING VALUES
+# CONFIDENCE INTERVALS
 # =====================================================
 
-def missing_value_analysis(df):
+def confidence_interval_table(
+    df,
+    confidence=0.95
+):
 
-    return pd.DataFrame({
+    numeric_df = get_numeric_columns(df)
 
-        "Column":
-        df.columns,
+    results = []
 
-        "Missing Values":
-        df.isna().sum().values,
+    for col in numeric_df.columns:
 
-        "Missing %":
-        (
-            df.isna().sum()
-            /
-            len(df)
-            * 100
-        ).values
+        data = (
+            numeric_df[col]
+            .dropna()
+        )
 
-    })
+        if len(data) < 2:
+
+            continue
+
+        mean = data.mean()
+
+        std = data.std()
+
+        n = len(data)
+
+        margin = (
+
+            t.ppf(
+                (1 + confidence) / 2,
+                n - 1
+            )
+
+            *
+
+            (std / np.sqrt(n))
+
+        )
+
+        results.append({
+
+            "Column": col,
+
+            "Mean":
+            round(mean, 4),
+
+            "Lower CI":
+            round(
+                mean - margin,
+                4
+            ),
+
+            "Upper CI":
+            round(
+                mean + margin,
+                4
+            )
+
+        })
+
+    return pd.DataFrame(results)
+
+# =====================================================
+# SHAPIRO TEST
+# =====================================================
+
+def shapiro_wilk_test(df):
+
+    numeric_df = get_numeric_columns(df)
+
+    results = []
+
+    for col in numeric_df.columns:
+
+        values = (
+            numeric_df[col]
+            .dropna()
+        )
+
+        if len(values) < 3:
+
+            continue
+
+        sample = values
+
+        if len(values) > 5000:
+
+            sample = values.sample(
+                5000,
+                random_state=42
+            )
+
+        stat, p_value = shapiro(
+            sample
+        )
+
+        results.append({
+
+            "Column": col,
+
+            "Statistic":
+            round(stat, 4),
+
+            "P_Value":
+            round(p_value, 4),
+
+            "Normal":
+
+            "Yes"
+
+            if p_value > 0.05
+
+            else "No"
+
+        })
+
+    return pd.DataFrame(results)
 
 # =====================================================
 # OUTLIERS
 # =====================================================
 
-def outlier_analysis(df):
+def outlier_summary(df):
 
-    numeric_df = get_numeric_data(df)
+    numeric_df = get_numeric_columns(df)
 
     results = []
 
@@ -226,245 +363,49 @@ def outlier_analysis(df):
     return pd.DataFrame(results)
 
 # =====================================================
-# NORMALITY TEST
-# =====================================================
-
-def normality_test(df):
-
-    numeric_df = get_numeric_data(df)
-
-    results = []
-
-    for col in numeric_df.columns:
-
-        data = (
-            numeric_df[col]
-            .dropna()
-        )
-
-        if len(data) > 3:
-
-            stat, p = shapiro(data)
-
-            results.append({
-
-                "Column": col,
-
-                "Statistic": stat,
-
-                "P_Value": p,
-
-                "Normal":
-
-                "Yes"
-
-                if p > 0.05
-
-                else "No"
-
-            })
-
-    return pd.DataFrame(results)
-
-# =====================================================
-# D'AGOSTINO TEST
-# =====================================================
-
-def dagostino_test(df):
-
-    numeric_df = get_numeric_data(df)
-
-    results = []
-
-    for col in numeric_df.columns:
-
-        data = (
-            numeric_df[col]
-            .dropna()
-        )
-
-        if len(data) > 8:
-
-            stat, p = normaltest(data)
-
-            results.append({
-
-                "Column": col,
-
-                "Statistic": stat,
-
-                "P_Value": p
-
-            })
-
-    return pd.DataFrame(results)
-
-# =====================================================
-# CONFIDENCE INTERVALS
-# =====================================================
-
-def confidence_intervals(
-    df,
-    confidence=0.95
-):
-
-    numeric_df = get_numeric_data(df)
-
-    results = []
-
-    for col in numeric_df.columns:
-
-        data = (
-            numeric_df[col]
-            .dropna()
-        )
-
-        n = len(data)
-
-        mean = data.mean()
-
-        std = data.std()
-
-        margin = (
-            t.ppf(
-                (1 + confidence) / 2,
-                n - 1
-            )
-            *
-            std
-            /
-            np.sqrt(n)
-        )
-
-        results.append({
-
-            "Column": col,
-
-            "Mean": mean,
-
-            "Lower CI":
-            mean - margin,
-
-            "Upper CI":
-            mean + margin
-
-        })
-
-    return pd.DataFrame(results)
-
-# =====================================================
-# CORRELATION
+# CORRELATION MATRIX
 # =====================================================
 
 def correlation_matrix(df):
 
-    numeric_df = get_numeric_data(df)
+    numeric_df = get_numeric_columns(df)
 
     return numeric_df.corr()
 
 # =====================================================
-# PEARSON
-# =====================================================
-
-def pearson_correlation(df):
-
-    numeric_df = get_numeric_data(df)
-
-    return numeric_df.corr(
-        method="pearson"
-    )
-
-# =====================================================
-# SPEARMAN
-# =====================================================
-
-def spearman_correlation(df):
-
-    numeric_df = get_numeric_data(df)
-
-    return numeric_df.corr(
-        method="spearman"
-    )
-
-# =====================================================
-# KENDALL
-# =====================================================
-
-def kendall_correlation(df):
-
-    numeric_df = get_numeric_data(df)
-
-    return numeric_df.corr(
-        method="kendall"
-    )
-
-# =====================================================
-# SUMMARY
-# =====================================================
-
-def statistical_summary(df):
-
-    numeric_df = get_numeric_data(df)
-
-    return {
-
-        "Rows":
-        int(len(df)),
-
-        "Columns":
-        int(len(df.columns)),
-
-        "Numeric Columns":
-        int(len(numeric_df.columns)),
-
-        "Missing Values":
-        int(
-            df.isna().sum().sum()
-        ),
-
-        "Duplicate Rows":
-        int(
-            df.duplicated().sum()
-        )
-
-    }
-
-# =====================================================
-# DATA QUALITY
+# DATA QUALITY REPORT
 # =====================================================
 
 def data_quality_report(df):
 
-    return pd.DataFrame({
+    report = pd.DataFrame({
 
         "Column":
         df.columns,
 
-        "Data Type":
+        "Data_Type":
         df.dtypes.astype(str),
 
         "Missing":
-        df.isna().sum(),
+        df.isnull().sum(),
+
+        "Missing_%":
+
+        round(
+
+            (
+                df.isnull().sum()
+                /
+                len(df)
+            ) * 100,
+
+            2
+
+        ),
 
         "Unique":
         df.nunique()
 
     })
 
-# =====================================================
-# EXPORT SUMMARY
-# =====================================================
-
-def statistical_dashboard_summary(df):
-
-    stats = statistical_summary(df)
-
-    return pd.DataFrame({
-
-        "Metric":
-        stats.keys(),
-
-        "Value":
-        stats.values()
-
-    })
+    return report
