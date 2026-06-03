@@ -1,323 +1,297 @@
-import streamlit as st
 import pandas as pd
 import numpy as np
+import streamlit as st
 
-
-# ---------------------------------------------------
-# LOAD DATASET
-# ---------------------------------------------------
-
-@st.cache_data
-def load_data(file_path="agriculture_dataset.csv"):
-    """
-    Load Agriculture Dataset
-    """
-
-    try:
-        df = pd.read_csv(file_path)
-
-        # Remove duplicate rows
-        df = df.drop_duplicates()
-
-        return df
-
-    except Exception as e:
-        st.error(f"Error loading dataset: {e}")
-        return pd.DataFrame()
-
-
-# ---------------------------------------------------
-# LOAD EXCEL FILE
-# ---------------------------------------------------
+# =====================================================
+# LOAD DATA
+# =====================================================
 
 @st.cache_data
-def load_excel(file_path):
-    """
-    Load Excel File
-    """
+def load_data():
 
     try:
-        df = pd.read_excel(file_path)
-        return df
+
+        df = pd.read_csv(
+            "agriculture_dataset.csv"
+        )
 
     except Exception as e:
-        st.error(f"Error loading Excel file: {e}")
+
+        st.error(
+            f"Error loading dataset: {e}"
+        )
+
         return pd.DataFrame()
 
+    # =================================================
+    # CLEAN COLUMN NAMES
+    # =================================================
 
-# ---------------------------------------------------
-# DATASET SHAPE
-# ---------------------------------------------------
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.replace(" ", "_")
+        .str.replace("-", "_")
+        .str.replace("/", "_")
+    )
 
-def get_dataset_shape(df):
+    # =================================================
+    # DISPLAY COLUMNS FOR DEBUGGING
+    # =================================================
 
-    return {
-        "Rows": df.shape[0],
-        "Columns": df.shape[1]
+    # Uncomment once for debugging
+
+    # st.write(df.columns.tolist())
+
+    # =================================================
+    # STANDARDIZE COLUMN NAMES
+    # =================================================
+
+    rename_dict = {
+
+        # Crop
+
+        "Crop": "Crop_Type",
+        "Crop_Type": "Crop_Type",
+
+        # Soil
+
+        "Soil": "Soil_Type",
+        "Soil_Type": "Soil_Type",
+
+        # Season
+
+        "Season": "Season",
+
+        # Irrigation
+
+        "Irrigation": "Irrigation_Type",
+        "Irrigation_Type": "Irrigation_Type",
+
+        # Yield
+
+        "Yield": "Yield_tons",
+        "Yield_tons": "Yield_tons",
+        "Production": "Yield_tons",
+
+        # Water
+
+        "Water": "Water_Usage_cubic_meters",
+        "Water_Usage": "Water_Usage_cubic_meters",
+        "Water_Usage_cubic_meters":
+        "Water_Usage_cubic_meters",
+
+        # Fertilizer
+
+        "Fertilizer": "Fertilizer_Used_tons",
+        "Fertilizer_Used":
+        "Fertilizer_Used_tons",
+        "Fertilizer_Used_tons":
+        "Fertilizer_Used_tons",
+
+        # Pesticide
+
+        "Pesticide": "Pesticide_Used_kg",
+        "Pesticide_Used":
+        "Pesticide_Used_kg",
+        "Pesticide_Used_kg":
+        "Pesticide_Used_kg",
+
+        # Farm Area
+
+        "Area": "Farm_Area_acres",
+        "Farm_Area": "Farm_Area_acres",
+        "Farm_Area_acres":
+        "Farm_Area_acres"
+
     }
 
-
-# ---------------------------------------------------
-# COLUMN TYPES
-# ---------------------------------------------------
-
-def get_column_types(df):
-
-    numeric_cols = df.select_dtypes(
-        include=["number"]
-    ).columns.tolist()
-
-    categorical_cols = df.select_dtypes(
-        include=["object", "category"]
-    ).columns.tolist()
-
-    return numeric_cols, categorical_cols
-
-
-# ---------------------------------------------------
-# MISSING VALUES
-# ---------------------------------------------------
-
-def missing_values_summary(df):
-
-    missing_df = pd.DataFrame({
-        "Column": df.columns,
-        "Missing Values": df.isnull().sum().values,
-        "Missing %": (
-            df.isnull().sum() / len(df) * 100
-        ).round(2).values
-    })
-
-    return missing_df.sort_values(
-        by="Missing %",
-        ascending=False
+    df = df.rename(
+        columns=rename_dict
     )
 
+    # =================================================
+    # CREATE MISSING COLUMNS
+    # =================================================
 
-# ---------------------------------------------------
-# DATA TYPES SUMMARY
-# ---------------------------------------------------
+    if "Crop_Type" not in df.columns:
 
-def datatype_summary(df):
+        df["Crop_Type"] = "Unknown"
 
-    return pd.DataFrame({
-        "Column": df.columns,
-        "Datatype": df.dtypes.astype(str)
-    })
+    if "Season" not in df.columns:
+
+        df["Season"] = "Unknown"
+
+    if "Soil_Type" not in df.columns:
+
+        df["Soil_Type"] = "Unknown"
+
+    if "Irrigation_Type" not in df.columns:
+
+        df["Irrigation_Type"] = "Unknown"
+
+    if "Yield_tons" not in df.columns:
+
+        df["Yield_tons"] = 0
+
+    if "Water_Usage_cubic_meters" not in df.columns:
+
+        df["Water_Usage_cubic_meters"] = 0
+
+    if "Fertilizer_Used_tons" not in df.columns:
+
+        df["Fertilizer_Used_tons"] = 0
+
+    if "Pesticide_Used_kg" not in df.columns:
+
+        df["Pesticide_Used_kg"] = 0
+
+    if "Farm_Area_acres" not in df.columns:
+
+        df["Farm_Area_acres"] = 1
+
+    # =================================================
+    # NUMERIC CONVERSION
+    # =================================================
+
+    numeric_cols = [
+
+        "Yield_tons",
+
+        "Water_Usage_cubic_meters",
+
+        "Fertilizer_Used_tons",
+
+        "Pesticide_Used_kg",
+
+        "Farm_Area_acres"
+
+    ]
+
+    for col in numeric_cols:
+
+        df[col] = pd.to_numeric(
+            df[col],
+            errors="coerce"
+        )
+
+        df[col] = df[col].fillna(0)
+
+    return df
 
 
-# ---------------------------------------------------
-# DESCRIPTIVE STATISTICS
-# ---------------------------------------------------
-
-def get_numeric_summary(df):
-
-    numeric_cols = df.select_dtypes(
-        include=np.number
-    )
-
-    return numeric_cols.describe().T
-
-
-# ---------------------------------------------------
-# UNIQUE VALUES
-# ---------------------------------------------------
-
-def unique_values_summary(df):
-
-    return pd.DataFrame({
-        "Column": df.columns,
-        "Unique Values": [
-            df[col].nunique()
-            for col in df.columns
-        ]
-    })
-
-
-# ---------------------------------------------------
-# FEATURE ENGINEERING
-# ---------------------------------------------------
+# =====================================================
+# DERIVED METRICS
+# =====================================================
 
 def create_derived_metrics(df):
 
-    data = df.copy()
+    df = df.copy()
 
+    # ===============================================
     # Yield Per Acre
+    # ===============================================
 
-    if (
-        "Yield_tons" in data.columns
-        and "Farm_Area_acres" in data.columns
-    ):
+    df["Yield_Per_Acre"] = np.where(
 
-        data["Yield_Per_Acre"] = (
-            data["Yield_tons"]
-            / data["Farm_Area_acres"]
-        )
+        df["Farm_Area_acres"] > 0,
 
+        df["Yield_tons"]
+        /
+        df["Farm_Area_acres"],
+
+        0
+
+    )
+
+    # ===============================================
     # Water Productivity
+    # ===============================================
 
-    if (
-        "Yield_tons" in data.columns
-        and "Water_Usage_cubic_meters" in data.columns
-    ):
+    df["Water_Productivity"] = np.where(
 
-        data["Water_Productivity"] = (
-            data["Yield_tons"]
-            / data["Water_Usage_cubic_meters"]
-        )
+        df["Water_Usage_cubic_meters"] > 0,
 
+        df["Yield_tons"]
+        /
+        df["Water_Usage_cubic_meters"],
+
+        0
+
+    )
+
+    # ===============================================
     # Fertilizer Efficiency
+    # ===============================================
 
-    if (
-        "Yield_tons" in data.columns
-        and "Fertilizer_Used_tons" in data.columns
-    ):
+    df["Fertilizer_Efficiency"] = np.where(
 
-        data["Fertilizer_Efficiency"] = (
-            data["Yield_tons"]
-            / data["Fertilizer_Used_tons"]
-        )
+        df["Fertilizer_Used_tons"] > 0,
 
+        df["Yield_tons"]
+        /
+        df["Fertilizer_Used_tons"],
+
+        0
+
+    )
+
+    # ===============================================
     # Pesticide Efficiency
+    # ===============================================
 
-    if (
-        "Yield_tons" in data.columns
-        and "Pesticide_Used_kg" in data.columns
-    ):
+    df["Pesticide_Efficiency"] = np.where(
 
-        data["Pesticide_Efficiency"] = (
-            data["Yield_tons"]
-            / data["Pesticide_Used_kg"]
-        )
+        df["Pesticide_Used_kg"] > 0,
 
-    # Water Footprint
+        df["Yield_tons"]
+        /
+        df["Pesticide_Used_kg"],
 
-    if (
-        "Water_Usage_cubic_meters" in data.columns
-        and "Yield_tons" in data.columns
-    ):
+        0
 
-        data["Water_Footprint_Per_Ton"] = (
-            data["Water_Usage_cubic_meters"]
-            / data["Yield_tons"]
-        )
+    )
 
-    return data
+    # ===============================================
+    # Sustainability Score
+    # ===============================================
 
+    df["Sustainability_Score"] = (
 
-# ---------------------------------------------------
-# DATA QUALITY SCORE
-# ---------------------------------------------------
+        df["Water_Productivity"] * 0.40 +
 
-def data_quality_score(df):
+        df["Fertilizer_Efficiency"] * 0.30 +
 
-    total_cells = df.shape[0] * df.shape[1]
+        df["Pesticide_Efficiency"] * 0.30
 
-    missing_cells = df.isnull().sum().sum()
+    )
 
-    completeness = (
-        (total_cells - missing_cells)
-        / total_cells
-    ) * 100
-
-    return round(completeness, 2)
+    return df
 
 
-# ---------------------------------------------------
-# PROFILE SUMMARY
-# ---------------------------------------------------
+# =====================================================
+# DATA PROFILE
+# =====================================================
 
 def dataset_profile(df):
 
-    profile = {
+    return {
 
-        "Rows":
-        df.shape[0],
+        "Rows": df.shape[0],
 
-        "Columns":
-        df.shape[1],
+        "Columns": df.shape[1],
 
-        "Numeric Columns":
-        len(
-            df.select_dtypes(
-                include=["number"]
-            ).columns
-        ),
+        "Crop Types":
+        df["Crop_Type"].nunique(),
 
-        "Categorical Columns":
-        len(
-            df.select_dtypes(
-                include=["object", "category"]
-            ).columns
-        ),
+        "Seasons":
+        df["Season"].nunique(),
 
-        "Missing Values":
-        int(
-            df.isnull().sum().sum()
-        ),
+        "Soil Types":
+        df["Soil_Type"].nunique(),
 
-        "Duplicate Rows":
-        int(
-            df.duplicated().sum()
-        ),
-
-        "Data Quality Score":
-        data_quality_score(df)
+        "Irrigation Types":
+        df["Irrigation_Type"].nunique()
 
     }
-
-    return profile
-
-
-# ---------------------------------------------------
-# TOP RECORDS
-# ---------------------------------------------------
-
-def preview_data(df, rows=10):
-
-    return df.head(rows)
-
-
-# ---------------------------------------------------
-# BOTTOM RECORDS
-# ---------------------------------------------------
-
-def tail_data(df, rows=10):
-
-    return df.tail(rows)
-
-
-# ---------------------------------------------------
-# RANDOM SAMPLE
-# ---------------------------------------------------
-
-def sample_data(df, rows=10):
-
-    return df.sample(
-        min(rows, len(df)),
-        random_state=42
-    )
-
-
-# ---------------------------------------------------
-# CORRELATION DATA
-# ---------------------------------------------------
-
-def correlation_dataset(df):
-
-    numeric_df = df.select_dtypes(
-        include=np.number
-    )
-
-    return numeric_df.corr()
-
-
-# ---------------------------------------------------
-# EXPORT CLEAN DATA
-# ---------------------------------------------------
-
-def export_clean_data(df):
-
-    return df.to_csv(
-        index=False
-    ).encode("utf-8")
+    
