@@ -1,79 +1,189 @@
 import pandas as pd
 import numpy as np
 
+# =====================================================
+# EXECUTIVE WATER SUMMARY
+# =====================================================
+
+def executive_water_summary(df):
+
+    if df.empty:
+
+        return {
+            "Total Water": 0,
+            "Average Water": 0,
+            "Maximum Water": 0,
+            "Water Productivity": 0
+        }
+
+    total_water = df["Water_Usage_cubic_meters"].sum()
+
+    total_yield = df["Yield_tons"].sum()
+
+    productivity = 0
+
+    if total_water > 0:
+
+        productivity = (
+            total_yield /
+            total_water
+        )
+
+    return {
+
+        "Total Water":
+        round(total_water, 2),
+
+        "Average Water":
+        round(
+            df["Water_Usage_cubic_meters"].mean(),
+            2
+        ),
+
+        "Maximum Water":
+        round(
+            df["Water_Usage_cubic_meters"].max(),
+            2
+        ),
+
+        "Water Productivity":
+        round(
+            productivity,
+            4
+        )
+
+    }
+
 
 # =====================================================
-# TOTAL WATER USAGE
+# CROP WATER SUMMARY
 # =====================================================
 
-def total_water_usage(df):
+def crop_water_summary(df):
 
-    if "Water_Usage_cubic_meters" not in df.columns:
-        return 0
+    return (
 
-    return round(
-        df["Water_Usage_cubic_meters"].sum(),
-        2
+        df.groupby("Crop_Type")
+
+        .agg(
+
+            Total_Water=(
+                "Water_Usage_cubic_meters",
+                "sum"
+            ),
+
+            Average_Water=(
+                "Water_Usage_cubic_meters",
+                "mean"
+            ),
+
+            Maximum_Water=(
+                "Water_Usage_cubic_meters",
+                "max"
+            )
+
+        )
+
+        .reset_index()
+
+        .sort_values(
+            "Total_Water",
+            ascending=False
+        )
+
     )
 
 
 # =====================================================
-# AVERAGE WATER USAGE
+# SEASON WATER SUMMARY
 # =====================================================
 
-def average_water_usage(df):
+def season_water_summary(df):
 
-    if "Water_Usage_cubic_meters" not in df.columns:
-        return 0
+    return (
 
-    return round(
-        df["Water_Usage_cubic_meters"].mean(),
-        2
+        df.groupby("Season")
+
+        .agg(
+
+            Total_Water=(
+                "Water_Usage_cubic_meters",
+                "sum"
+            ),
+
+            Average_Water=(
+                "Water_Usage_cubic_meters",
+                "mean"
+            )
+
+        )
+
+        .reset_index()
+
     )
 
 
 # =====================================================
-# MEDIAN WATER USAGE
+# WATER EFFICIENCY
 # =====================================================
 
-def median_water_usage(df):
+def crop_water_efficiency(df):
 
-    if "Water_Usage_cubic_meters" not in df.columns:
-        return 0
+    result = (
 
-    return round(
-        df["Water_Usage_cubic_meters"].median(),
-        2
+        df.groupby("Crop_Type")
+
+        .agg(
+
+            Yield=(
+                "Yield_tons",
+                "sum"
+            ),
+
+            Water=(
+                "Water_Usage_cubic_meters",
+                "sum"
+            )
+
+        )
+
+        .reset_index()
+
     )
 
+    result["Water_Efficiency"] = np.where(
 
-# =====================================================
-# MAX WATER USAGE
-# =====================================================
+        result["Water"] > 0,
 
-def maximum_water_usage(df):
+        result["Yield"] /
+        result["Water"],
 
-    if "Water_Usage_cubic_meters" not in df.columns:
-        return 0
+        0
 
-    return round(
-        df["Water_Usage_cubic_meters"].max(),
-        2
     )
 
+    return (
 
-# =====================================================
-# MIN WATER USAGE
-# =====================================================
+        result[
 
-def minimum_water_usage(df):
+            [
 
-    if "Water_Usage_cubic_meters" not in df.columns:
-        return 0
+                "Crop_Type",
 
-    return round(
-        df["Water_Usage_cubic_meters"].min(),
-        2
+                "Water_Efficiency"
+
+            ]
+
+        ]
+
+        .sort_values(
+
+            "Water_Efficiency",
+
+            ascending=False
+
+        )
+
     )
 
 
@@ -83,240 +193,27 @@ def minimum_water_usage(df):
 
 def water_productivity(df):
 
-    if (
-        "Yield_tons" not in df.columns
-        or
-        "Water_Usage_cubic_meters" not in df.columns
-    ):
-        return 0
-
-    return round(
-        (
-            df["Yield_tons"].sum()
-            /
-            df["Water_Usage_cubic_meters"].sum()
-        ),
-        6
+    total_water = (
+        df["Water_Usage_cubic_meters"]
+        .sum()
     )
 
+    total_yield = (
+        df["Yield_tons"]
+        .sum()
+    )
 
-# =====================================================
-# WATER FOOTPRINT
-# =====================================================
+    if total_water == 0:
 
-def water_footprint(df):
-
-    if (
-        "Yield_tons" not in df.columns
-        or
-        "Water_Usage_cubic_meters" not in df.columns
-    ):
         return 0
 
     return round(
-        (
-            df["Water_Usage_cubic_meters"].sum()
-            /
-            df["Yield_tons"].sum()
-        ),
+
+        total_yield /
+        total_water,
+
         4
-    )
 
-
-# =====================================================
-# WATER INTENSITY
-# =====================================================
-
-def water_intensity(df):
-
-    if (
-        "Farm_Area_acres" not in df.columns
-        or
-        "Water_Usage_cubic_meters" not in df.columns
-    ):
-        return 0
-
-    return round(
-        (
-            df["Water_Usage_cubic_meters"].sum()
-            /
-            df["Farm_Area_acres"].sum()
-        ),
-        4
-    )
-
-
-# =====================================================
-# CREATE WATER PRODUCTIVITY COLUMN
-# =====================================================
-
-def create_water_metrics(df):
-
-    data = df.copy()
-
-    if (
-        "Yield_tons" in data.columns
-        and
-        "Water_Usage_cubic_meters" in data.columns
-    ):
-
-        data["Water_Productivity"] = (
-            data["Yield_tons"]
-            /
-            data["Water_Usage_cubic_meters"]
-        )
-
-        data["Water_Footprint"] = (
-            data["Water_Usage_cubic_meters"]
-            /
-            data["Yield_tons"]
-        )
-
-    return data
-
-
-# =====================================================
-# CROP-WISE WATER ANALYSIS
-# =====================================================
-
-def crop_water_summary(df):
-
-    return (
-        df.groupby("Crop_Type")
-        .agg(
-            Total_Water=(
-                "Water_Usage_cubic_meters",
-                "sum"
-            ),
-            Average_Water=(
-                "Water_Usage_cubic_meters",
-                "mean"
-            ),
-            Farms=(
-                "Crop_Type",
-                "count"
-            )
-        )
-        .reset_index()
-        .sort_values(
-            by="Total_Water",
-            ascending=False
-        )
-    )
-
-
-# =====================================================
-# SOIL-WISE WATER ANALYSIS
-# =====================================================
-
-def soil_water_summary(df):
-
-    return (
-        df.groupby("Soil_Type")
-        .agg(
-            Total_Water=(
-                "Water_Usage_cubic_meters",
-                "sum"
-            ),
-            Average_Water=(
-                "Water_Usage_cubic_meters",
-                "mean"
-            )
-        )
-        .reset_index()
-        .sort_values(
-            by="Total_Water",
-            ascending=False
-        )
-    )
-
-
-# =====================================================
-# IRRIGATION-WISE WATER ANALYSIS
-# =====================================================
-
-def irrigation_water_summary(df):
-
-    return (
-        df.groupby("Irrigation_Type")
-        .agg(
-            Total_Water=(
-                "Water_Usage_cubic_meters",
-                "sum"
-            ),
-            Average_Water=(
-                "Water_Usage_cubic_meters",
-                "mean"
-            ),
-            Average_Yield=(
-                "Yield_tons",
-                "mean"
-            )
-        )
-        .reset_index()
-        .sort_values(
-            by="Total_Water",
-            ascending=False
-        )
-    )
-
-
-# =====================================================
-# SEASON-WISE WATER ANALYSIS
-# =====================================================
-
-def season_water_summary(df):
-
-    return (
-        df.groupby("Season")
-        .agg(
-            Total_Water=(
-                "Water_Usage_cubic_meters",
-                "sum"
-            ),
-            Average_Water=(
-                "Water_Usage_cubic_meters",
-                "mean"
-            )
-        )
-        .reset_index()
-        .sort_values(
-            by="Total_Water",
-            ascending=False
-        )
-    )
-
-
-# =====================================================
-# WATER EFFICIENCY BY CROP
-# =====================================================
-
-def crop_water_efficiency(df):
-
-    summary = (
-        df.groupby("Crop_Type")
-        .agg(
-            Total_Yield=(
-                "Yield_tons",
-                "sum"
-            ),
-            Total_Water=(
-                "Water_Usage_cubic_meters",
-                "sum"
-            )
-        )
-        .reset_index()
-    )
-
-    summary["Water_Productivity"] = (
-        summary["Total_Yield"]
-        /
-        summary["Total_Water"]
-    )
-
-    return summary.sort_values(
-        by="Water_Productivity",
-        ascending=False
     )
 
 
@@ -326,164 +223,253 @@ def crop_water_efficiency(df):
 
 def water_ranking(df):
 
-    ranking = crop_water_efficiency(df)
+    result = crop_water_efficiency(df)
 
-    ranking["Rank"] = range(
-        1,
-        len(ranking) + 1
+    result["Rank"] = (
+
+        result["Water_Efficiency"]
+
+        .rank(
+
+            ascending=False,
+
+            method="dense"
+
+        )
+
+        .astype(int)
+
     )
 
-    return ranking
+    return result
 
 
 # =====================================================
-# WATER PARETO ANALYSIS
+# TOP WATER CROPS
 # =====================================================
 
-def water_pareto_analysis(df):
+def top_water_efficient_crops(
+    df,
+    top_n=10
+):
 
-    pareto = (
-        df.groupby("Crop_Type")
-        ["Water_Usage_cubic_meters"]
-        .sum()
-        .reset_index()
+    return (
+
+        crop_water_efficiency(df)
+
+        .head(top_n)
+
     )
-
-    pareto = pareto.sort_values(
-        by="Water_Usage_cubic_meters",
-        ascending=False
-    )
-
-    pareto["Cumulative_Water"] = (
-        pareto["Water_Usage_cubic_meters"]
-        .cumsum()
-    )
-
-    pareto["Cumulative_%"] = (
-
-        pareto["Cumulative_Water"]
-
-        /
-
-        pareto["Water_Usage_cubic_meters"].sum()
-
-    ) * 100
-
-    return pareto
 
 
 # =====================================================
-# WATER HEATMAPS
+# LOW WATER CROPS
 # =====================================================
 
-def crop_irrigation_water_heatmap(df):
+def low_water_efficient_crops(
+    df,
+    top_n=10
+):
+
+    return (
+
+        crop_water_efficiency(df)
+
+        .tail(top_n)
+
+    )
+
+
+# =====================================================
+# WATER HEATMAP
+# =====================================================
+
+def water_heatmap(df):
 
     return pd.pivot_table(
+
         df,
+
         values="Water_Usage_cubic_meters",
+
         index="Crop_Type",
-        columns="Irrigation_Type",
-        aggfunc="mean"
-    )
 
+        columns="Season",
 
-def crop_soil_water_heatmap(df):
+        aggfunc="mean",
 
-    return pd.pivot_table(
-        df,
-        values="Water_Usage_cubic_meters",
-        index="Crop_Type",
-        columns="Soil_Type",
-        aggfunc="mean"
-    )
+        fill_value=0
 
-
-def season_crop_water_heatmap(df):
-
-    return pd.pivot_table(
-        df,
-        values="Water_Usage_cubic_meters",
-        index="Season",
-        columns="Crop_Type",
-        aggfunc="mean"
     )
 
 
 # =====================================================
-# WATER DISTRIBUTION SUMMARY
+# WATER DISTRIBUTION
 # =====================================================
 
 def water_distribution_summary(df):
 
-    water = df["Water_Usage_cubic_meters"]
+    water = df[
+        "Water_Usage_cubic_meters"
+    ]
 
-    summary = {
+    return pd.DataFrame({
 
-        "Mean":
-        round(water.mean(), 2),
+        "Metric": [
 
-        "Median":
-        round(water.median(), 2),
+            "Mean",
 
-        "Minimum":
-        round(water.min(), 2),
+            "Median",
 
-        "Maximum":
-        round(water.max(), 2),
+            "Minimum",
 
-        "Std Dev":
-        round(water.std(), 2),
+            "Maximum",
 
-        "Variance":
-        round(water.var(), 2),
+            "Std Dev",
 
-        "Q1":
-        round(water.quantile(0.25), 2),
+            "Variance",
 
-        "Q3":
-        round(water.quantile(0.75), 2)
+            "Q1",
 
-    }
+            "Q3"
 
-    return pd.DataFrame(
-        summary.items(),
-        columns=[
-            "Metric",
-            "Value"
+        ],
+
+        "Value": [
+
+            water.mean(),
+
+            water.median(),
+
+            water.min(),
+
+            water.max(),
+
+            water.std(),
+
+            water.var(),
+
+            water.quantile(0.25),
+
+            water.quantile(0.75)
+
         ]
+
+    })
+
+
+# =====================================================
+# WATER FOOTPRINT
+# =====================================================
+
+def water_footprint(df):
+
+    total_water = (
+        df["Water_Usage_cubic_meters"]
+        .sum()
+    )
+
+    total_yield = (
+        df["Yield_tons"]
+        .sum()
+    )
+
+    if total_yield == 0:
+
+        return 0
+
+    return round(
+
+        total_water /
+        total_yield,
+
+        4
+
     )
 
 
 # =====================================================
-# EXECUTIVE WATER SUMMARY
+# WATER INSIGHTS
 # =====================================================
 
-def executive_water_summary(df):
+def water_insights(df):
+
+    ranking = crop_water_efficiency(df)
+
+    if ranking.empty:
+
+        return {}
+
+    best_crop = ranking.iloc[0]["Crop_Type"]
+
+    worst_crop = ranking.iloc[-1]["Crop_Type"]
 
     return {
 
-        "Total Water":
-        total_water_usage(df),
+        "Best Water Efficient Crop":
+        best_crop,
 
-        "Average Water":
-        average_water_usage(df),
+        "Lowest Water Efficient Crop":
+        worst_crop,
 
-        "Median Water":
-        median_water_usage(df),
+        "Average Water Efficiency":
+        round(
 
-        "Maximum Water":
-        maximum_water_usage(df),
+            ranking[
+                "Water_Efficiency"
+            ].mean(),
 
-        "Minimum Water":
-        minimum_water_usage(df),
+            4
 
-        "Water Productivity":
-        water_productivity(df),
-
-        "Water Footprint":
-        water_footprint(df),
-
-        "Water Intensity":
-        water_intensity(df)
+        )
 
     }
+
+
+# =====================================================
+# WATER KPI TABLE
+# =====================================================
+
+def water_kpi_table(df):
+
+    summary = executive_water_summary(df)
+
+    return pd.DataFrame({
+
+        "Metric":
+        summary.keys(),
+
+        "Value":
+        summary.values()
+
+    })
+
+
+# =====================================================
+# WATER BENCHMARK
+# =====================================================
+
+def water_benchmark(df):
+
+    result = crop_water_efficiency(df)
+
+    avg_efficiency = (
+        result[
+            "Water_Efficiency"
+        ].mean()
+    )
+
+    result["Benchmark"] = np.where(
+
+        result[
+            "Water_Efficiency"
+        ] >= avg_efficiency,
+
+        "Above Average",
+
+        "Below Average"
+
+    )
+
+    return result
+    
