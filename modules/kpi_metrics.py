@@ -1,379 +1,354 @@
 import pandas as pd
 import numpy as np
 
-
 # =====================================================
-# BASIC KPIs
-# =====================================================
-
-def total_farms(df):
-    return len(df)
-
-
-def total_area(df):
-    if "Farm_Area_acres" in df.columns:
-        return round(df["Farm_Area_acres"].sum(), 2)
-    return 0
-
-
-def total_yield(df):
-    if "Yield_tons" in df.columns:
-        return round(df["Yield_tons"].sum(), 2)
-    return 0
-
-
-def total_water_usage(df):
-    if "Water_Usage_cubic_meters" in df.columns:
-        return round(df["Water_Usage_cubic_meters"].sum(), 2)
-    return 0
-
-
-def total_fertilizer(df):
-    if "Fertilizer_Used_tons" in df.columns:
-        return round(df["Fertilizer_Used_tons"].sum(), 2)
-    return 0
-
-
-def total_pesticide(df):
-    if "Pesticide_Used_kg" in df.columns:
-        return round(df["Pesticide_Used_kg"].sum(), 2)
-    return 0
-
-
-# =====================================================
-# AVERAGE KPIs
-# =====================================================
-
-def average_yield(df):
-    if "Yield_tons" in df.columns:
-        return round(df["Yield_tons"].mean(), 2)
-    return 0
-
-
-def average_area(df):
-    if "Farm_Area_acres" in df.columns:
-        return round(df["Farm_Area_acres"].mean(), 2)
-    return 0
-
-
-def average_water_usage(df):
-    if "Water_Usage_cubic_meters" in df.columns:
-        return round(df["Water_Usage_cubic_meters"].mean(), 2)
-    return 0
-
-
-def average_fertilizer(df):
-    if "Fertilizer_Used_tons" in df.columns:
-        return round(df["Fertilizer_Used_tons"].mean(), 2)
-    return 0
-
-
-def average_pesticide(df):
-    if "Pesticide_Used_kg" in df.columns:
-        return round(df["Pesticide_Used_kg"].mean(), 2)
-    return 0
-
-
-# =====================================================
-# EFFICIENCY METRICS
-# =====================================================
-
-def yield_per_acre(df):
-
-    if (
-        "Yield_tons" in df.columns
-        and "Farm_Area_acres" in df.columns
-    ):
-        return round(
-            (
-                df["Yield_tons"].sum()
-                /
-                df["Farm_Area_acres"].sum()
-            ),
-            4
-        )
-
-    return 0
-
-
-def water_productivity(df):
-
-    if (
-        "Yield_tons" in df.columns
-        and "Water_Usage_cubic_meters" in df.columns
-    ):
-        return round(
-            (
-                df["Yield_tons"].sum()
-                /
-                df["Water_Usage_cubic_meters"].sum()
-            ),
-            6
-        )
-
-    return 0
-
-
-def fertilizer_efficiency(df):
-
-    if (
-        "Yield_tons" in df.columns
-        and "Fertilizer_Used_tons" in df.columns
-    ):
-        return round(
-            (
-                df["Yield_tons"].sum()
-                /
-                df["Fertilizer_Used_tons"].sum()
-            ),
-            4
-        )
-
-    return 0
-
-
-def pesticide_efficiency(df):
-
-    if (
-        "Yield_tons" in df.columns
-        and "Pesticide_Used_kg" in df.columns
-    ):
-        return round(
-            (
-                df["Yield_tons"].sum()
-                /
-                df["Pesticide_Used_kg"].sum()
-            ),
-            4
-        )
-
-    return 0
-
-
-# =====================================================
-# WATER FOOTPRINT
-# =====================================================
-
-def water_footprint(df):
-
-    if (
-        "Water_Usage_cubic_meters" in df.columns
-        and "Yield_tons" in df.columns
-    ):
-        return round(
-            (
-                df["Water_Usage_cubic_meters"].sum()
-                /
-                df["Yield_tons"].sum()
-            ),
-            4
-        )
-
-    return 0
-
-
-# =====================================================
-# RESOURCE INTENSITY SCORE
-# =====================================================
-
-def resource_intensity_score(df):
-
-    try:
-
-        total_resources = (
-
-            df["Water_Usage_cubic_meters"].sum()
-
-            +
-
-            df["Fertilizer_Used_tons"].sum()
-
-            +
-
-            df["Pesticide_Used_kg"].sum()
-
-        )
-
-        score = (
-            total_resources
-            /
-            df["Yield_tons"].sum()
-        )
-
-        return round(score, 4)
-
-    except:
-        return 0
-
-
-# =====================================================
-# SUSTAINABILITY SCORE
-# =====================================================
-
-def sustainability_score(df):
-
-    try:
-
-        intensity = resource_intensity_score(df)
-
-        return round(
-            1 / intensity,
-            6
-        )
-
-    except:
-        return 0
-
-
-# =====================================================
-# TOP PERFORMERS
-# =====================================================
-
-def best_crop(df):
-
-    if (
-        "Crop_Type" in df.columns
-        and "Yield_tons" in df.columns
-    ):
-
-        crop = (
-            df.groupby("Crop_Type")
-            ["Yield_tons"]
-            .mean()
-            .idxmax()
-        )
-
-        return crop
-
-    return "N/A"
-
-
-def best_soil(df):
-
-    if (
-        "Soil_Type" in df.columns
-        and "Yield_tons" in df.columns
-    ):
-
-        soil = (
-            df.groupby("Soil_Type")
-            ["Yield_tons"]
-            .mean()
-            .idxmax()
-        )
-
-        return soil
-
-    return "N/A"
-
-
-def best_irrigation(df):
-
-    if (
-        "Irrigation_Type" in df.columns
-        and "Yield_tons" in df.columns
-    ):
-
-        irrigation = (
-            df.groupby("Irrigation_Type")
-            ["Yield_tons"]
-            .mean()
-            .idxmax()
-        )
-
-        return irrigation
-
-    return "N/A"
-
-
-def best_season(df):
-
-    if (
-        "Season" in df.columns
-        and "Yield_tons" in df.columns
-    ):
-
-        season = (
-            df.groupby("Season")
-            ["Yield_tons"]
-            .mean()
-            .idxmax()
-        )
-
-        return season
-
-    return "N/A"
-
-
-# =====================================================
-# DATA QUALITY KPI
-# =====================================================
-
-def data_quality_score(df):
-
-    total_cells = df.shape[0] * df.shape[1]
-
-    missing_cells = df.isnull().sum().sum()
-
-    score = (
-        (total_cells - missing_cells)
-        /
-        total_cells
-    ) * 100
-
-    return round(score, 2)
-
-
-# =====================================================
-# EXECUTIVE KPI SUMMARY
+# EXECUTIVE SUMMARY
 # =====================================================
 
 def executive_summary(df):
 
-    summary = {
+    if df.empty:
 
-        "Total Farms":
-        total_farms(df),
+        return {
 
-        "Total Area":
-        total_area(df),
+            "Total Yield": 0,
+            "Total Water": 0,
+            "Total Fertilizer": 0,
+            "Total Pesticide": 0,
+
+            "Average Yield": 0,
+            "Average Water": 0,
+            "Average Fertilizer": 0,
+            "Average Pesticide": 0,
+
+            "Maximum Yield": 0,
+            "Minimum Yield": 0,
+
+            "Crop Types": 0,
+            "Seasons": 0,
+            "Records": 0
+        }
+
+    return {
 
         "Total Yield":
-        total_yield(df),
+        float(df["Yield_tons"].sum()),
 
-        "Total Water Usage":
-        total_water_usage(df),
+        "Total Water":
+        float(
+            df["Water_Usage_cubic_meters"].sum()
+        ),
 
-        "Yield Per Acre":
-        yield_per_acre(df),
+        "Total Fertilizer":
+        float(
+            df["Fertilizer_Used_tons"].sum()
+        ),
 
-        "Water Productivity":
-        water_productivity(df),
+        "Total Pesticide":
+        float(
+            df["Pesticide_Used_kg"].sum()
+        ),
 
-        "Fertilizer Efficiency":
-        fertilizer_efficiency(df),
+        "Average Yield":
+        float(
+            df["Yield_tons"].mean()
+        ),
 
-        "Pesticide Efficiency":
-        pesticide_efficiency(df),
+        "Average Water":
+        float(
+            df["Water_Usage_cubic_meters"].mean()
+        ),
 
-        "Sustainability Score":
-        sustainability_score(df),
+        "Average Fertilizer":
+        float(
+            df["Fertilizer_Used_tons"].mean()
+        ),
 
-        "Best Crop":
-        best_crop(df),
+        "Average Pesticide":
+        float(
+            df["Pesticide_Used_kg"].mean()
+        ),
 
-        "Best Soil":
-        best_soil(df),
+        "Maximum Yield":
+        float(
+            df["Yield_tons"].max()
+        ),
 
-        "Best Irrigation":
-        best_irrigation(df),
+        "Minimum Yield":
+        float(
+            df["Yield_tons"].min()
+        ),
 
-        "Best Season":
-        best_season(df),
+        "Crop Types":
+        int(
+            df["Crop_Type"].nunique()
+        ),
 
-        "Data Quality":
-        data_quality_score(df)
+        "Seasons":
+        int(
+            df["Season"].nunique()
+        ),
 
+        "Records":
+        int(
+            len(df)
+        )
     }
 
-    return summary
+# =====================================================
+# YIELD KPIs
+# =====================================================
+
+def yield_kpis(df):
+
+    return {
+
+        "Total Yield":
+        float(df["Yield_tons"].sum()),
+
+        "Average Yield":
+        float(df["Yield_tons"].mean()),
+
+        "Maximum Yield":
+        float(df["Yield_tons"].max()),
+
+        "Minimum Yield":
+        float(df["Yield_tons"].min()),
+
+        "Median Yield":
+        float(df["Yield_tons"].median())
+    }
+
+# =====================================================
+# WATER KPIs
+# =====================================================
+
+def water_kpis(df):
+
+    total_yield = df["Yield_tons"].sum()
+
+    total_water = (
+        df["Water_Usage_cubic_meters"].sum()
+    )
+
+    productivity = 0
+
+    if total_water > 0:
+
+        productivity = (
+            total_yield /
+            total_water
+        )
+
+    return {
+
+        "Total Water":
+        float(total_water),
+
+        "Average Water":
+        float(
+            df[
+                "Water_Usage_cubic_meters"
+            ].mean()
+        ),
+
+        "Maximum Water":
+        float(
+            df[
+                "Water_Usage_cubic_meters"
+            ].max()
+        ),
+
+        "Water Productivity":
+        round(
+            productivity,
+            4
+        )
+    }
+
+# =====================================================
+# FERTILIZER KPIs
+# =====================================================
+
+def fertilizer_kpis(df):
+
+    total_yield = df["Yield_tons"].sum()
+
+    total_fert = (
+        df["Fertilizer_Used_tons"].sum()
+    )
+
+    efficiency = 0
+
+    if total_fert > 0:
+
+        efficiency = (
+            total_yield /
+            total_fert
+        )
+
+    return {
+
+        "Total Fertilizer":
+        float(total_fert),
+
+        "Average Fertilizer":
+        float(
+            df[
+                "Fertilizer_Used_tons"
+            ].mean()
+        ),
+
+        "Maximum Fertilizer":
+        float(
+            df[
+                "Fertilizer_Used_tons"
+            ].max()
+        ),
+
+        "Fertilizer Efficiency":
+        round(
+            efficiency,
+            4
+        )
+    }
+
+# =====================================================
+# PESTICIDE KPIs
+# =====================================================
+
+def pesticide_kpis(df):
+
+    total_yield = df["Yield_tons"].sum()
+
+    total_pest = (
+        df["Pesticide_Used_kg"].sum()
+    )
+
+    efficiency = 0
+
+    if total_pest > 0:
+
+        efficiency = (
+            total_yield /
+            total_pest
+        )
+
+    return {
+
+        "Total Pesticide":
+        float(total_pest),
+
+        "Average Pesticide":
+        float(
+            df[
+                "Pesticide_Used_kg"
+            ].mean()
+        ),
+
+        "Maximum Pesticide":
+        float(
+            df[
+                "Pesticide_Used_kg"
+            ].max()
+        ),
+
+        "Pesticide Efficiency":
+        round(
+            efficiency,
+            4
+        )
+    }
+
+# =====================================================
+# SUSTAINABILITY KPIs
+# =====================================================
+
+def sustainability_kpis(df):
+
+    total_yield = df["Yield_tons"].sum()
+
+    total_water = (
+        df[
+            "Water_Usage_cubic_meters"
+        ].sum()
+    )
+
+    total_fert = (
+        df[
+            "Fertilizer_Used_tons"
+        ].sum()
+    )
+
+    total_pest = (
+        df[
+            "Pesticide_Used_kg"
+        ].sum()
+    )
+
+    resource_score = 0
+
+    if total_yield > 0:
+
+        resource_score = (
+            total_yield /
+            (
+                total_water +
+                total_fert +
+                total_pest
+            )
+        )
+
+    return {
+
+        "Resource Score":
+        round(
+            resource_score,
+            4
+        ),
+
+        "Total Yield":
+        float(total_yield),
+
+        "Total Resources":
+        float(
+            total_water +
+            total_fert +
+            total_pest
+        )
+    }
+
+# =====================================================
+# KPI DATAFRAME
+# =====================================================
+
+def kpi_dataframe(df):
+
+    summary = executive_summary(df)
+
+    return pd.DataFrame({
+
+        "Metric":
+        summary.keys(),
+
+        "Value":
+        summary.values()
+
+    })
+
+# =====================================================
+# TOP KPIs
+# =====================================================
+
+def dashboard_kpis(df):
+
+    summary = executive_summary(df)
+
+    return [
+
+        summary["Total Yield"],
+        summary["Total Water"],
+        summary["Total Fertilizer"],
+        summary["Total Pesticide"]
+
+    ]
