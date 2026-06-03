@@ -1,0 +1,12 @@
+streamlit
+pandas
+numpy
+plotly
+scipy
+statsmodels
+matplotlib
+openpyxl
+xlsxwriter
+fpdf2
+kaleido
+tabulate
