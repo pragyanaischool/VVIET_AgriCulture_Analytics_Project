@@ -1,0 +1,495 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
+from modules.data_loader import (
+    load_data,
+    create_derived_metrics
+)
+
+from modules.yield_analytics import (
+    season_yield_summary
+)
+
+from modules.water_analytics import (
+    season_water_summary
+)
+
+from modules.fertilizer_analytics import (
+    season_fertilizer_summary
+)
+
+from modules.pesticide_analytics import (
+    season_pesticide_summary
+)
+
+from modules.sustainability_analytics import (
+    season_sustainability_summary
+)
+
+# =====================================================
+# PAGE CONFIG
+# =====================================================
+
+st.set_page_config(
+    page_title="Seasonal Analytics",
+    page_icon="📅",
+    layout="wide"
+)
+
+# =====================================================
+# LOAD DATA
+# =====================================================
+
+df = load_data()
+
+df = create_derived_metrics(df)
+
+# =====================================================
+# TITLE
+# =====================================================
+
+st.title("📅 Seasonal Analytics Dashboard")
+
+st.markdown("""
+Analyze seasonal performance,
+resource utilization,
+yield productivity,
+and sustainability trends.
+""")
+
+# =====================================================
+# FILTERS
+# =====================================================
+
+st.sidebar.header("Filters")
+
+crop_filter = st.sidebar.multiselect(
+    "Crop Type",
+    sorted(df["Crop_Type"].unique()),
+    default=sorted(df["Crop_Type"].unique())
+)
+
+soil_filter = st.sidebar.multiselect(
+    "Soil Type",
+    sorted(df["Soil_Type"].unique()),
+    default=sorted(df["Soil_Type"].unique())
+)
+
+filtered_df = df[
+    (df["Crop_Type"].isin(crop_filter))
+    &
+    (df["Soil_Type"].isin(soil_filter))
+]
+
+# =====================================================
+# SEASONAL KPI DASHBOARD
+# =====================================================
+
+st.subheader("📊 Seasonal KPI Dashboard")
+
+yield_df = season_yield_summary(
+    filtered_df
+)
+
+water_df = season_water_summary(
+    filtered_df
+)
+
+fert_df = season_fertilizer_summary(
+    filtered_df
+)
+
+pest_df = season_pesticide_summary(
+    filtered_df
+)
+
+sustain_df = season_sustainability_summary(
+    filtered_df
+)
+
+best_yield_season = yield_df.loc[
+    yield_df["Total_Yield"].idxmax(),
+    "Season"
+]
+
+best_sustain_season = sustain_df.loc[
+    sustain_df["Sustainability_Score"].idxmax(),
+    "Season"
+]
+
+c1, c2, c3, c4 = st.columns(4)
+
+with c1:
+    st.metric(
+        "Best Yield Season",
+        best_yield_season
+    )
+
+with c2:
+    st.metric(
+        "Best Sustainability",
+        best_sustain_season
+    )
+
+with c3:
+    st.metric(
+        "Seasons",
+        filtered_df["Season"].nunique()
+    )
+
+with c4:
+    st.metric(
+        "Total Yield",
+        round(
+            filtered_df["Yield_tons"].sum(),
+            2
+        )
+    )
+
+# =====================================================
+# YIELD ANALYSIS
+# =====================================================
+
+st.subheader("🌾 Seasonal Yield Analysis")
+
+fig_yield = px.bar(
+    yield_df,
+    x="Season",
+    y="Total_Yield",
+    color="Average_Yield",
+    title="Season-wise Yield"
+)
+
+st.plotly_chart(
+    fig_yield,
+    use_container_width=True
+)
+
+st.dataframe(
+    yield_df,
+    use_container_width=True
+)
+
+# =====================================================
+# WATER ANALYSIS
+# =====================================================
+
+st.subheader("💧 Seasonal Water Usage")
+
+fig_water = px.bar(
+    water_df,
+    x="Season",
+    y="Total_Water",
+    color="Average_Water",
+    title="Season-wise Water Usage"
+)
+
+st.plotly_chart(
+    fig_water,
+    use_container_width=True
+)
+
+st.dataframe(
+    water_df,
+    use_container_width=True
+)
+
+# =====================================================
+# FERTILIZER ANALYSIS
+# =====================================================
+
+st.subheader("🧪 Seasonal Fertilizer Usage")
+
+fig_fert = px.bar(
+    fert_df,
+    x="Season",
+    y="Total_Fertilizer",
+    color="Average_Fertilizer",
+    title="Season-wise Fertilizer Usage"
+)
+
+st.plotly_chart(
+    fig_fert,
+    use_container_width=True
+)
+
+st.dataframe(
+    fert_df,
+    use_container_width=True
+)
+
+# =====================================================
+# PESTICIDE ANALYSIS
+# =====================================================
+
+st.subheader("☘️ Seasonal Pesticide Usage")
+
+fig_pest = px.bar(
+    pest_df,
+    x="Season",
+    y="Total_Pesticide",
+    color="Average_Pesticide",
+    title="Season-wise Pesticide Usage"
+)
+
+st.plotly_chart(
+    fig_pest,
+    use_container_width=True
+)
+
+st.dataframe(
+    pest_df,
+    use_container_width=True
+)
+
+# =====================================================
+# SUSTAINABILITY ANALYSIS
+# =====================================================
+
+st.subheader("🌱 Seasonal Sustainability")
+
+fig_sustain = px.bar(
+    sustain_df,
+    x="Season",
+    y="Sustainability_Score",
+    color="Sustainability_Score",
+    title="Season Sustainability Ranking"
+)
+
+st.plotly_chart(
+    fig_sustain,
+    use_container_width=True
+)
+
+st.dataframe(
+    sustain_df,
+    use_container_width=True
+)
+
+# =====================================================
+# RESOURCE UTILIZATION
+# =====================================================
+
+st.subheader("📦 Seasonal Resource Utilization")
+
+resource_df = pd.DataFrame({
+
+    "Season": water_df["Season"],
+
+    "Water": water_df["Total_Water"],
+
+    "Fertilizer": fert_df["Total_Fertilizer"],
+
+    "Pesticide": pest_df["Total_Pesticide"]
+
+})
+
+fig_resource = px.bar(
+    resource_df,
+    x="Season",
+    y=[
+        "Water",
+        "Fertilizer",
+        "Pesticide"
+    ],
+    barmode="group",
+    title="Season-wise Resource Utilization"
+)
+
+st.plotly_chart(
+    fig_resource,
+    use_container_width=True
+)
+
+# =====================================================
+# SEASONAL EFFICIENCY
+# =====================================================
+
+st.subheader("⚡ Seasonal Efficiency")
+
+efficiency_df = pd.DataFrame({
+
+    "Season": yield_df["Season"],
+
+    "Yield_per_Water":
+
+    yield_df["Total_Yield"]
+
+    /
+
+    water_df["Total_Water"],
+
+    "Yield_per_Fertilizer":
+
+    yield_df["Total_Yield"]
+
+    /
+
+    fert_df["Total_Fertilizer"],
+
+    "Yield_per_Pesticide":
+
+    yield_df["Total_Yield"]
+
+    /
+
+    pest_df["Total_Pesticide"]
+
+})
+
+st.dataframe(
+    efficiency_df,
+    use_container_width=True
+)
+
+fig_efficiency = px.line(
+    efficiency_df,
+    x="Season",
+    y=[
+        "Yield_per_Water",
+        "Yield_per_Fertilizer",
+        "Yield_per_Pesticide"
+    ],
+    markers=True,
+    title="Seasonal Efficiency Trends"
+)
+
+st.plotly_chart(
+    fig_efficiency,
+    use_container_width=True
+)
+
+# =====================================================
+# HEATMAP
+# =====================================================
+
+st.subheader("🔥 Seasonal KPI Heatmap")
+
+heatmap_df = efficiency_df.set_index(
+    "Season"
+)
+
+fig_heat = px.imshow(
+    heatmap_df,
+    text_auto=".2f",
+    aspect="auto"
+)
+
+st.plotly_chart(
+    fig_heat,
+    use_container_width=True
+)
+
+# =====================================================
+# RADAR CHART
+# =====================================================
+
+st.subheader("🎯 Seasonal Performance Radar")
+
+selected_season = st.selectbox(
+    "Select Season",
+    sustain_df["Season"].unique()
+)
+
+radar_row = sustain_df[
+    sustain_df["Season"] == selected_season
+].iloc[0]
+
+radar_fig = go.Figure()
+
+radar_fig.add_trace(
+    go.Scatterpolar(
+        r=[
+            radar_row["Yield"],
+            radar_row["Water"],
+            radar_row["Fertilizer"],
+            radar_row["Pesticide"]
+        ],
+        theta=[
+            "Yield",
+            "Water",
+            "Fertilizer",
+            "Pesticide"
+        ],
+        fill="toself"
+    )
+)
+
+radar_fig.update_layout(
+    polar=dict(radialaxis=dict(visible=True))
+)
+
+st.plotly_chart(
+    radar_fig,
+    use_container_width=True
+)
+
+# =====================================================
+# EXECUTIVE INSIGHTS
+# =====================================================
+
+st.subheader("💡 Seasonal Insights")
+
+highest_yield = yield_df.loc[
+    yield_df["Total_Yield"].idxmax()
+]
+
+lowest_yield = yield_df.loc[
+    yield_df["Total_Yield"].idxmin()
+]
+
+st.success(
+    f"Highest Yield Season: "
+    f"{highest_yield['Season']} "
+    f"({highest_yield['Total_Yield']:.2f} tons)"
+)
+
+st.info(
+    f"Lowest Yield Season: "
+    f"{lowest_yield['Season']} "
+    f"({lowest_yield['Total_Yield']:.2f} tons)"
+)
+
+st.success(
+    f"Most Sustainable Season: "
+    f"{best_sustain_season}"
+)
+
+# =====================================================
+# DOWNLOAD
+# =====================================================
+
+csv = sustain_df.to_csv(
+    index=False
+).encode("utf-8")
+
+st.download_button(
+    label="📥 Download Seasonal Analytics",
+    data=csv,
+    file_name="seasonal_analytics.csv",
+    mime="text/csv"
+)
+
+# =====================================================
+# RAW DATA
+# =====================================================
+
+with st.expander(
+    "View Filtered Dataset"
+):
+    st.dataframe(
+        filtered_df,
+        use_container_width=True
+    )
+
+# =====================================================
+# FOOTER
+# =====================================================
+
+st.markdown("---")
+
+st.caption(
+    "Agriculture Analytics Dashboard | Seasonal Analytics"
+)
