@@ -1,198 +1,55 @@
 import pandas as pd
-import numpy as np
 import io
-from datetime import datetime
-
 from fpdf import FPDF
 
+# =====================================================
+# SAFE TEXT
+# =====================================================
+
+def safe_text(value):
+
+    if value is None:
+        return "N/A"
+
+    text = str(value)
+
+    text = text.replace("\n", " ")
+    text = text.replace("\r", " ")
+
+    return text[:2000]
 
 # =====================================================
-# EXPORT DATAFRAME TO CSV
+# CSV EXPORT
 # =====================================================
 
-def dataframe_to_csv(df):
+def export_csv(df):
 
     return df.to_csv(
         index=False
     ).encode("utf-8")
 
-
 # =====================================================
 # EXCEL EXPORT
 # =====================================================
 
-def create_excel_report(
-
-    df,
-
-    kpi_summary=None,
-
-    statistics_summary=None,
-
-    crop_summary=None,
-
-    water_summary=None,
-
-    fertilizer_summary=None,
-
-    pesticide_summary=None,
-
-    sustainability_summary=None
-
-):
+def export_excel(df):
 
     output = io.BytesIO()
 
     with pd.ExcelWriter(
         output,
-        engine="xlsxwriter"
+        engine="openpyxl"
     ) as writer:
 
-        # ==========================================
-        # RAW DATA
-        # ==========================================
-
         df.to_excel(
-
             writer,
-
-            sheet_name="Raw Data",
-
+            sheet_name="Analytics",
             index=False
-
         )
-
-        # ==========================================
-        # KPI SUMMARY
-        # ==========================================
-
-        if kpi_summary is not None:
-
-            pd.DataFrame(
-
-                list(kpi_summary.items()),
-
-                columns=["Metric", "Value"]
-
-            ).to_excel(
-
-                writer,
-
-                sheet_name="KPI Summary",
-
-                index=False
-
-            )
-
-        # ==========================================
-        # STATISTICS
-        # ==========================================
-
-        if statistics_summary is not None:
-
-            statistics_summary.to_excel(
-
-                writer,
-
-                sheet_name="Statistics"
-
-            )
-
-        # ==========================================
-        # CROP SUMMARY
-        # ==========================================
-
-        if crop_summary is not None:
-
-            crop_summary.to_excel(
-
-                writer,
-
-                sheet_name="Crop Analytics",
-
-                index=False
-
-            )
-
-        # ==========================================
-        # WATER SUMMARY
-        # ==========================================
-
-        if water_summary is not None:
-
-            water_summary.to_excel(
-
-                writer,
-
-                sheet_name="Water Analytics",
-
-                index=False
-
-            )
-
-        # ==========================================
-        # FERTILIZER SUMMARY
-        # ==========================================
-
-        if fertilizer_summary is not None:
-
-            fertilizer_summary.to_excel(
-
-                writer,
-
-                sheet_name="Fertilizer Analytics",
-
-                index=False
-
-            )
-
-        # ==========================================
-        # PESTICIDE SUMMARY
-        # ==========================================
-
-        if pesticide_summary is not None:
-
-            pesticide_summary.to_excel(
-
-                writer,
-
-                sheet_name="Pesticide Analytics",
-
-                index=False
-
-            )
-
-        # ==========================================
-        # SUSTAINABILITY
-        # ==========================================
-
-        if sustainability_summary is not None:
-
-            pd.DataFrame(
-
-                list(
-                    sustainability_summary.items()
-                ),
-
-                columns=[
-                    "Metric",
-                    "Value"
-                ]
-
-            ).to_excel(
-
-                writer,
-
-                sheet_name="Sustainability",
-
-                index=False
-
-            )
 
     output.seek(0)
 
     return output.getvalue()
-
 
 # =====================================================
 # PDF CLASS
@@ -203,27 +60,18 @@ class AgriculturePDF(FPDF):
     def header(self):
 
         self.set_font(
-
-            "Arial",
-
+            "Helvetica",
             "B",
-
             16
-
         )
 
         self.cell(
-
             0,
-
             10,
-
             "Agriculture Analytics Report",
-
-            ln=True,
-
+            new_x="LMARGIN",
+            new_y="NEXT",
             align="C"
-
         )
 
         self.ln(5)
@@ -233,421 +81,279 @@ class AgriculturePDF(FPDF):
         self.set_y(-15)
 
         self.set_font(
-
-            "Arial",
-
+            "Helvetica",
             "I",
-
             8
-
         )
 
         self.cell(
-
             0,
-
             10,
-
             f"Page {self.page_no()}",
-
             align="C"
-
         )
 
-
 # =====================================================
-# PDF EXECUTIVE REPORT
+# PDF REPORT
 # =====================================================
 
 def create_pdf_report(
-
-    executive_summary,
-
-    recommendations=None,
-
-    alerts=None
-
+    title,
+    summary=None,
+    insights=None,
+    dataframe=None
 ):
 
     pdf = AgriculturePDF()
 
+    pdf.set_auto_page_break(
+        auto=True,
+        margin=15
+    )
+
     pdf.add_page()
 
-    pdf.set_font(
-
-        "Arial",
-
-        size=12
-
-    )
-
-    # ==========================================
-    # REPORT DATE
-    # ==========================================
-
-    pdf.cell(
-
-        0,
-
-        10,
-
-        f"Generated: {datetime.now()}",
-
-        ln=True
-
-    )
-
-    pdf.ln(5)
-
-    # ==========================================
-    # EXECUTIVE SUMMARY
-    # ==========================================
+    # -----------------------------------------
+    # Title
+    # -----------------------------------------
 
     pdf.set_font(
-
-        "Arial",
-
+        "Helvetica",
         "B",
-
-        12
-
-    )
-
-    pdf.cell(
-
-        0,
-
-        10,
-
-        "Executive Summary",
-
-        ln=True
-
-    )
-
-    pdf.set_font(
-
-        "Arial",
-
-        size=11
-
+        14
     )
 
     pdf.multi_cell(
-
-        0,
-
+        180,
         8,
-
-        executive_summary
-
+        safe_text(title)
     )
 
-    pdf.ln(5)
+    pdf.ln(3)
 
-    # ==========================================
-    # RECOMMENDATIONS
-    # ==========================================
+    # -----------------------------------------
+    # Summary
+    # -----------------------------------------
 
-    if recommendations:
+    if summary:
 
         pdf.set_font(
-
-            "Arial",
-
+            "Helvetica",
             "B",
-
             12
-
         )
 
         pdf.cell(
-
             0,
-
-            10,
-
-            "Recommendations",
-
-            ln=True
-
+            8,
+            "Executive Summary",
+            new_x="LMARGIN",
+            new_y="NEXT"
         )
 
         pdf.set_font(
-
-            "Arial",
-
-            size=11
-
+            "Helvetica",
+            "",
+            10
         )
 
-        for item in recommendations:
+        if isinstance(summary, dict):
+
+            for k, v in summary.items():
+
+                pdf.multi_cell(
+                    180,
+                    6,
+                    f"{safe_text(k)} : {safe_text(v)}"
+                )
+
+        else:
 
             pdf.multi_cell(
-
-                0,
-
-                8,
-
-                f"- {item}"
-
+                180,
+                6,
+                safe_text(summary)
             )
 
-    pdf.ln(5)
+        pdf.ln(3)
 
-    # ==========================================
-    # ALERTS
-    # ==========================================
+    # -----------------------------------------
+    # Insights
+    # -----------------------------------------
 
-    if alerts:
+    if insights:
 
         pdf.set_font(
-
-            "Arial",
-
+            "Helvetica",
             "B",
-
             12
-
         )
 
         pdf.cell(
-
             0,
-
-            10,
-
-            "Alerts",
-
-            ln=True
-
+            8,
+            "Insights",
+            new_x="LMARGIN",
+            new_y="NEXT"
         )
 
         pdf.set_font(
-
-            "Arial",
-
-            size=11
-
+            "Helvetica",
+            "",
+            10
         )
 
-        for item in alerts:
+        if isinstance(insights, list):
+
+            for item in insights:
+
+                pdf.multi_cell(
+                    180,
+                    6,
+                    f"- {safe_text(item)}"
+                )
+
+        elif isinstance(insights, dict):
+
+            for k, v in insights.items():
+
+                pdf.multi_cell(
+                    180,
+                    6,
+                    f"{safe_text(k)} : {safe_text(v)}"
+                )
+
+        else:
 
             pdf.multi_cell(
-
-                0,
-
-                8,
-
-                f"- {item}"
-
+                180,
+                6,
+                safe_text(insights)
             )
 
-    return bytes(
-        pdf.output(dest="S")
+        pdf.ln(3)
+
+    # -----------------------------------------
+    # Data Snapshot
+    # -----------------------------------------
+
+    if dataframe is not None and len(dataframe) > 0:
+
+        pdf.set_font(
+            "Helvetica",
+            "B",
+            12
+        )
+
+        pdf.cell(
+            0,
+            8,
+            "Data Snapshot",
+            new_x="LMARGIN",
+            new_y="NEXT"
+        )
+
+        pdf.set_font(
+            "Helvetica",
+            "",
+            8
+        )
+
+        preview = dataframe.head(20)
+
+        for _, row in preview.iterrows():
+
+            row_text = " | ".join(
+                [
+                    safe_text(v)
+                    for v in row.values
+                ]
+            )
+
+            pdf.multi_cell(
+                180,
+                5,
+                row_text
+            )
+
+    pdf_bytes = bytes(
+        pdf.output()
     )
 
+    return pdf_bytes
 
 # =====================================================
-# KPI REPORT DATAFRAME
+# REPORT PACKAGE
 # =====================================================
 
-def create_kpi_dataframe(
-
-    kpi_summary
-
+def generate_complete_report(
+    title,
+    summary,
+    insights,
+    dataframe
 ):
 
-    return pd.DataFrame(
+    return {
 
-        list(kpi_summary.items()),
+        "csv":
+        export_csv(dataframe),
 
-        columns=[
+        "excel":
+        export_excel(dataframe),
 
-            "Metric",
+        "pdf":
+        create_pdf_report(
+            title,
+            summary,
+            insights,
+            dataframe
+        )
 
-            "Value"
-
-        ]
-
-    )
-
+    }
 
 # =====================================================
-# EXECUTIVE REPORT
+# KPI REPORT
 # =====================================================
 
-def executive_report_dataframe(
-
-    total_farms,
-
-    total_yield,
-
-    total_water,
-
-    total_fertilizer,
-
-    total_pesticide
-
+def create_kpi_report(
+    kpi_dict
 ):
 
-    report = pd.DataFrame({
+    return pd.DataFrame({
 
-        "Metric": [
+        "Metric":
+        list(kpi_dict.keys()),
 
-            "Total Farms",
-
-            "Total Yield",
-
-            "Total Water",
-
-            "Total Fertilizer",
-
-            "Total Pesticide"
-
-        ],
-
-        "Value": [
-
-            total_farms,
-
-            total_yield,
-
-            total_water,
-
-            total_fertilizer,
-
-            total_pesticide
-
-        ]
+        "Value":
+        list(kpi_dict.values())
 
     })
 
-    return report
-
-
 # =====================================================
-# EXPORT SUMMARY TABLE
+# SUMMARY REPORT
 # =====================================================
 
-def summary_table_to_excel(
-
-    dataframe
-
+def create_summary_report(
+    df
 ):
-
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(
-
-        output,
-
-        engine="xlsxwriter"
-
-    ) as writer:
-
-        dataframe.to_excel(
-
-            writer,
-
-            index=False
-
-        )
-
-    output.seek(0)
-
-    return output.getvalue()
-
-
-# =====================================================
-# REPORT METADATA
-# =====================================================
-
-def report_metadata():
 
     return {
 
-        "Generated On":
+        "Rows":
+        len(df),
 
-        datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
+        "Columns":
+        len(df.columns),
+
+        "Missing Values":
+        int(
+            df.isna().sum().sum()
         ),
 
-        "Application":
-
-        "Agriculture Analytics Dashboard",
-
-        "Version":
-
-        "1.0"
+        "Duplicate Rows":
+        int(
+            df.duplicated().sum()
+        )
 
     }
 
-
-# =====================================================
-# COMPLETE EXPORT PACKAGE
-# =====================================================
-
-def complete_export_package(
-
-    df,
-
-    executive_summary,
-
-    recommendations,
-
-    alerts,
-
-    kpi_summary,
-
-    statistics_summary,
-
-    crop_summary,
-
-    water_summary,
-
-    fertilizer_summary,
-
-    pesticide_summary,
-
-    sustainability_summary
-
-):
-
-    excel_file = create_excel_report(
-
-        df=df,
-
-        kpi_summary=kpi_summary,
-
-        statistics_summary=statistics_summary,
-
-        crop_summary=crop_summary,
-
-        water_summary=water_summary,
-
-        fertilizer_summary=fertilizer_summary,
-
-        pesticide_summary=pesticide_summary,
-
-        sustainability_summary=sustainability_summary
-
-    )
-
-    pdf_file = create_pdf_report(
-
-        executive_summary,
-
-        recommendations,
-
-        alerts
-
-    )
-
-    return {
-
-        "excel": excel_file,
-
-        "pdf": pdf_file
-
-    }
