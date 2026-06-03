@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 
 from modules.data_loader import (
     load_data,
@@ -22,11 +21,6 @@ from modules.fertilizer_analytics import (
 
 from modules.pesticide_analytics import (
     pesticide_pareto_analysis
-)
-
-from modules.sustainability_analytics import (
-    sustainability_pareto_analysis,
-    crop_sustainability_summary
 )
 
 # =====================================================
@@ -53,10 +47,10 @@ df = create_derived_metrics(df)
 st.title("📈 Pareto Analytics Dashboard")
 
 st.markdown("""
-Identify the critical few crops that contribute
-to the majority of yield, water consumption,
-fertilizer usage, pesticide usage and sustainability.
-Based on the 80/20 Pareto Principle.
+Pareto Analysis helps identify the
+critical few contributors responsible
+for the majority of agricultural output
+and resource consumption.
 """)
 
 # =====================================================
@@ -84,345 +78,154 @@ filtered_df = df[
 ]
 
 # =====================================================
-# PARETO FUNCTION
+# ANALYSIS TYPE
 # =====================================================
 
-def create_pareto_chart(
-    dataframe,
-    category_col,
-    value_col,
-    cumulative_col,
-    title
-):
+analysis_type = st.selectbox(
 
-    fig = go.Figure()
+    "Select Pareto Analysis",
 
-    fig.add_trace(
-        go.Bar(
-            x=dataframe[category_col],
-            y=dataframe[value_col],
-            name=value_col
-        )
-    )
+    [
 
-    fig.add_trace(
-        go.Scatter(
-            x=dataframe[category_col],
-            y=dataframe[cumulative_col],
-            yaxis="y2",
-            mode="lines+markers",
-            name="Cumulative %"
-        )
-    )
+        "Yield",
 
-    fig.add_hline(
-        y=80,
-        line_dash="dash"
-    )
+        "Water",
 
-    fig.update_layout(
+        "Fertilizer",
 
-        title=title,
+        "Pesticide"
 
-        yaxis=dict(
-            title=value_col
-        ),
+    ]
 
-        yaxis2=dict(
-            title="Cumulative %",
-            overlaying="y",
-            side="right",
-            range=[0, 100]
-        ),
-
-        height=600
-    )
-
-    return fig
-
-# =====================================================
-# KPI SUMMARY
-# =====================================================
-
-st.subheader("📊 Pareto KPI Summary")
-
-yield_pareto = pareto_yield_analysis(
-    filtered_df
 )
-
-water_pareto = water_pareto_analysis(
-    filtered_df
-)
-
-fert_pareto = fertilizer_pareto_analysis(
-    filtered_df
-)
-
-pest_pareto = pesticide_pareto_analysis(
-    filtered_df
-)
-
-sustain_pareto = sustainability_pareto_analysis(
-    filtered_df
-)
-
-c1, c2, c3, c4 = st.columns(4)
-
-with c1:
-    st.metric(
-        "Total Crops",
-        filtered_df["Crop_Type"].nunique()
-    )
-
-with c2:
-    st.metric(
-        "Yield Leaders",
-        len(
-            yield_pareto[
-                yield_pareto["Cumulative_%"] <= 80
-            ]
-        )
-    )
-
-with c3:
-    st.metric(
-        "Water Leaders",
-        len(
-            water_pareto[
-                water_pareto["Cumulative_%"] <= 80
-            ]
-        )
-    )
-
-with c4:
-    st.metric(
-        "Sustainability Leaders",
-        len(
-            sustain_pareto[
-                sustain_pareto["Cumulative_%"] <= 80
-            ]
-        )
-    )
 
 # =====================================================
 # YIELD PARETO
 # =====================================================
 
-st.subheader("🌾 Yield Pareto Analysis")
+if analysis_type == "Yield":
 
-st.plotly_chart(
-    create_pareto_chart(
-        yield_pareto,
-        "Crop_Type",
-        "Yield_tons",
-        "Cumulative_%",
-        "Yield Pareto Analysis"
-    ),
-    use_container_width=True
-)
+    pareto_df = pareto_yield_analysis(
+        filtered_df
+    )
 
-st.dataframe(
-    yield_pareto,
-    use_container_width=True
-)
+    value_col = "Yield_tons"
+
+    title = "Yield Pareto Analysis"
 
 # =====================================================
 # WATER PARETO
 # =====================================================
 
-st.subheader("💧 Water Pareto Analysis")
+elif analysis_type == "Water":
 
-st.plotly_chart(
-    create_pareto_chart(
-        water_pareto,
-        "Crop_Type",
-        "Water_Usage_cubic_meters",
-        "Cumulative_%",
-        "Water Pareto Analysis"
-    ),
-    use_container_width=True
-)
+    pareto_df = water_pareto_analysis(
+        filtered_df
+    )
 
-st.dataframe(
-    water_pareto,
-    use_container_width=True
-)
+    value_col = "Total_Water"
+
+    title = "Water Pareto Analysis"
 
 # =====================================================
 # FERTILIZER PARETO
 # =====================================================
 
-st.subheader("🧪 Fertilizer Pareto Analysis")
+elif analysis_type == "Fertilizer":
 
-st.plotly_chart(
-    create_pareto_chart(
-        fert_pareto,
-        "Crop_Type",
-        "Fertilizer_Used_tons",
-        "Cumulative_%",
-        "Fertilizer Pareto Analysis"
-    ),
-    use_container_width=True
-)
+    pareto_df = fertilizer_pareto_analysis(
+        filtered_df
+    )
 
-st.dataframe(
-    fert_pareto,
-    use_container_width=True
-)
+    value_col = "Total_Fertilizer"
+
+    title = "Fertilizer Pareto Analysis"
 
 # =====================================================
 # PESTICIDE PARETO
 # =====================================================
 
-st.subheader("☘️ Pesticide Pareto Analysis")
+else:
 
-st.plotly_chart(
-    create_pareto_chart(
-        pest_pareto,
-        "Crop_Type",
-        "Pesticide_Used_kg",
-        "Cumulative_%",
-        "Pesticide Pareto Analysis"
+    pareto_df = pesticide_pareto_analysis(
+        filtered_df
+    )
+
+    value_col = "Total_Pesticide"
+
+    title = "Pesticide Pareto Analysis"
+
+# =====================================================
+# TABLE
+# =====================================================
+
+st.subheader(title)
+
+st.dataframe(
+    pareto_df,
+    use_container_width=True
+)
+
+# =====================================================
+# PARETO CHART
+# =====================================================
+
+fig = go.Figure()
+
+fig.add_trace(
+
+    go.Bar(
+
+        x=pareto_df["Crop_Type"],
+
+        y=pareto_df[value_col],
+
+        name="Contribution"
+
+    )
+
+)
+
+fig.add_trace(
+
+    go.Scatter(
+
+        x=pareto_df["Crop_Type"],
+
+        y=pareto_df["Cumulative_%"],
+
+        name="Cumulative %",
+
+        yaxis="y2"
+
+    )
+
+)
+
+fig.update_layout(
+
+    title=title,
+
+    xaxis_title="Crop Type",
+
+    yaxis_title=value_col,
+
+    yaxis2=dict(
+
+        title="Cumulative %",
+
+        overlaying="y",
+
+        side="right",
+
+        range=[0, 110]
+
     ),
-    use_container_width=True
-)
 
-st.dataframe(
-    pest_pareto,
-    use_container_width=True
-)
+    legend=dict(
+        orientation="h"
+    )
 
-# =====================================================
-# SUSTAINABILITY PARETO
-# =====================================================
-
-st.subheader("🌱 Sustainability Pareto Analysis")
-
-st.plotly_chart(
-    create_pareto_chart(
-        sustain_pareto,
-        "Crop_Type",
-        "Sustainability_Score",
-        "Cumulative_%",
-        "Sustainability Pareto Analysis"
-    ),
-    use_container_width=True
-)
-
-st.dataframe(
-    sustain_pareto,
-    use_container_width=True
-)
-
-# =====================================================
-# TOP CONTRIBUTORS
-# =====================================================
-
-st.subheader("🏆 Top Contributing Crops")
-
-leaderboard = pd.DataFrame({
-
-    "Yield Leader":
-    yield_pareto.iloc[0]["Crop_Type"],
-
-    "Water Leader":
-    water_pareto.iloc[0]["Crop_Type"],
-
-    "Fertilizer Leader":
-    fert_pareto.iloc[0]["Crop_Type"],
-
-    "Pesticide Leader":
-    pest_pareto.iloc[0]["Crop_Type"],
-
-    "Sustainability Leader":
-    sustain_pareto.iloc[0]["Crop_Type"]
-
-}, index=[0])
-
-st.dataframe(
-    leaderboard,
-    use_container_width=True
-)
-
-# =====================================================
-# RESOURCE OPTIMIZATION
-# =====================================================
-
-st.subheader("⚡ Resource Optimization Insights")
-
-top_yield_crop = yield_pareto.iloc[0]["Crop_Type"]
-
-top_sustain_crop = sustain_pareto.iloc[0]["Crop_Type"]
-
-highest_water_crop = water_pareto.iloc[0]["Crop_Type"]
-
-highest_fert_crop = fert_pareto.iloc[0]["Crop_Type"]
-
-highest_pest_crop = pest_pareto.iloc[0]["Crop_Type"]
-
-st.success(
-    f"Highest Yield Contributor: {top_yield_crop}"
-)
-
-st.success(
-    f"Most Sustainable Crop: {top_sustain_crop}"
-)
-
-st.warning(
-    f"Highest Water Consumer: {highest_water_crop}"
-)
-
-st.warning(
-    f"Highest Fertilizer Consumer: {highest_fert_crop}"
-)
-
-st.warning(
-    f"Highest Pesticide Consumer: {highest_pest_crop}"
-)
-
-# =====================================================
-# EXECUTIVE RECOMMENDATIONS
-# =====================================================
-
-st.subheader("💡 Executive Recommendations")
-
-recommendations = [
-
-    "Focus on top 20% crops generating 80% of total yield.",
-
-    "Optimize water allocation to high-yield crops.",
-
-    "Reduce fertilizer usage on low-performing crops.",
-
-    "Monitor pesticide-heavy crops for sustainability improvements.",
-
-    "Expand cultivation of highly sustainable crops.",
-
-    "Use Pareto analysis regularly for resource optimization."
-
-]
-
-for rec in recommendations:
-    st.success(rec)
-
-# =====================================================
-# SUSTAINABILITY VS YIELD
-# =====================================================
-
-st.subheader("🎯 Yield vs Sustainability")
-
-crop_sustain = crop_sustainability_summary(
-    filtered_df
-)
-
-fig = px.scatter(
-    crop_sustain,
-    x="Total_Yield",
-    y="Sustainability_Score",
-    color="Crop_Type",
-    size="Total_Yield",
-    hover_name="Crop_Type",
-    title="Yield vs Sustainability"
 )
 
 st.plotly_chart(
@@ -431,27 +234,74 @@ st.plotly_chart(
 )
 
 # =====================================================
+# 80-20 ANALYSIS
+# =====================================================
+
+st.subheader("🎯 80-20 Analysis")
+
+critical_crops = pareto_df[
+    pareto_df["Cumulative_%"] <= 80
+]
+
+st.metric(
+    "Critical Crops (≈80%)",
+    len(critical_crops)
+)
+
+st.dataframe(
+    critical_crops,
+    use_container_width=True
+)
+
+# =====================================================
+# INSIGHTS
+# =====================================================
+
+st.subheader("💡 Insights")
+
+top_crop = pareto_df.iloc[0]["Crop_Type"]
+
+top_contribution = pareto_df.iloc[0][value_col]
+
+st.success(
+
+    f"Top Contributor: {top_crop} "
+    f"({top_contribution:,.2f})"
+
+)
+
+st.info(
+
+    f"{len(critical_crops)} crops contribute "
+    f"approximately 80% of the total impact."
+
+)
+
+# =====================================================
 # DOWNLOAD
 # =====================================================
 
-csv = yield_pareto.to_csv(
+csv = pareto_df.to_csv(
     index=False
 ).encode("utf-8")
 
 st.download_button(
-    label="📥 Download Pareto Report",
-    data=csv,
-    file_name="pareto_analytics.csv",
-    mime="text/csv"
+
+    "📥 Download Pareto Analysis",
+
+    csv,
+
+    f"{analysis_type.lower()}_pareto.csv",
+
+    "text/csv"
+
 )
 
 # =====================================================
 # RAW DATA
 # =====================================================
 
-with st.expander(
-    "View Dataset"
-):
+with st.expander("View Dataset"):
 
     st.dataframe(
         filtered_df,
