@@ -1,279 +1,193 @@
 import pandas as pd
 import numpy as np
 
-
 # =====================================================
-# TOTAL YIELD
+# EXECUTIVE YIELD SUMMARY
 # =====================================================
 
-def total_yield(df):
+def executive_yield_summary(df):
 
-    if "Yield_tons" not in df.columns:
-        return 0
+    if df.empty:
 
-    return round(
-        df["Yield_tons"].sum(),
-        2
+        return {
+
+            "Total Yield": 0,
+
+            "Average Yield": 0,
+
+            "Maximum Yield": 0,
+
+            "Yield Per Acre": 0,
+
+            "Best Crop": "N/A"
+
+        }
+
+    total_yield = df["Yield_tons"].sum()
+
+    avg_yield = df["Yield_tons"].mean()
+
+    max_yield = df["Yield_tons"].max()
+
+    total_area = df["Farm_Area_acres"].sum()
+
+    yield_per_acre = 0
+
+    if total_area > 0:
+
+        yield_per_acre = total_yield / total_area
+
+    crop_summary = (
+        df.groupby("Crop_Type")["Yield_tons"]
+        .sum()
+        .reset_index()
     )
 
+    best_crop = crop_summary.loc[
+        crop_summary["Yield_tons"].idxmax(),
+        "Crop_Type"
+    ]
+
+    return {
+
+        "Total Yield":
+        round(total_yield, 2),
+
+        "Average Yield":
+        round(avg_yield, 2),
+
+        "Maximum Yield":
+        round(max_yield, 2),
+
+        "Yield Per Acre":
+        round(yield_per_acre, 2),
+
+        "Best Crop":
+        best_crop
+
+    }
 
 # =====================================================
-# AVERAGE YIELD
-# =====================================================
-
-def average_yield(df):
-
-    if "Yield_tons" not in df.columns:
-        return 0
-
-    return round(
-        df["Yield_tons"].mean(),
-        2
-    )
-
-
-# =====================================================
-# MEDIAN YIELD
-# =====================================================
-
-def median_yield(df):
-
-    if "Yield_tons" not in df.columns:
-        return 0
-
-    return round(
-        df["Yield_tons"].median(),
-        2
-    )
-
-
-# =====================================================
-# MAXIMUM YIELD
-# =====================================================
-
-def maximum_yield(df):
-
-    if "Yield_tons" not in df.columns:
-        return 0
-
-    return round(
-        df["Yield_tons"].max(),
-        2
-    )
-
-
-# =====================================================
-# MINIMUM YIELD
-# =====================================================
-
-def minimum_yield(df):
-
-    if "Yield_tons" not in df.columns:
-        return 0
-
-    return round(
-        df["Yield_tons"].min(),
-        2
-    )
-
-
-# =====================================================
-# YIELD PER ACRE
-# =====================================================
-
-def yield_per_acre(df):
-
-    if (
-        "Yield_tons" not in df.columns
-        or
-        "Farm_Area_acres" not in df.columns
-    ):
-        return 0
-
-    return round(
-        (
-            df["Yield_tons"].sum()
-            /
-            df["Farm_Area_acres"].sum()
-        ),
-        4
-    )
-
-
-# =====================================================
-# ADD YIELD PER ACRE COLUMN
-# =====================================================
-
-def create_yield_efficiency(df):
-
-    data = df.copy()
-
-    if (
-        "Yield_tons" in data.columns
-        and
-        "Farm_Area_acres" in data.columns
-    ):
-
-        data["Yield_Per_Acre"] = (
-            data["Yield_tons"]
-            /
-            data["Farm_Area_acres"]
-        )
-
-    return data
-
-
-# =====================================================
-# CROP-WISE YIELD
+# CROP YIELD SUMMARY
 # =====================================================
 
 def crop_yield_summary(df):
 
     return (
+
         df.groupby("Crop_Type")
+
         .agg(
-            Total_Yield=("Yield_tons", "sum"),
-            Average_Yield=("Yield_tons", "mean"),
-            Max_Yield=("Yield_tons", "max"),
-            Min_Yield=("Yield_tons", "min"),
-            Farms=("Crop_Type", "count")
+
+            Total_Yield=(
+                "Yield_tons",
+                "sum"
+            ),
+
+            Average_Yield=(
+                "Yield_tons",
+                "mean"
+            ),
+
+            Maximum_Yield=(
+                "Yield_tons",
+                "max"
+            )
+
         )
+
         .reset_index()
+
         .sort_values(
-            by="Total_Yield",
+            "Total_Yield",
             ascending=False
         )
+
     )
 
-
 # =====================================================
-# SEASON-WISE YIELD
+# SEASON YIELD SUMMARY
 # =====================================================
 
 def season_yield_summary(df):
 
     return (
+
         df.groupby("Season")
+
         .agg(
-            Total_Yield=("Yield_tons", "sum"),
-            Average_Yield=("Yield_tons", "mean"),
-            Farms=("Season", "count")
+
+            Total_Yield=(
+                "Yield_tons",
+                "sum"
+            ),
+
+            Average_Yield=(
+                "Yield_tons",
+                "mean"
+            )
+
         )
+
         .reset_index()
-        .sort_values(
-            by="Total_Yield",
-            ascending=False
-        )
+
     )
 
-
 # =====================================================
-# SOIL-WISE YIELD
+# SOIL YIELD SUMMARY
 # =====================================================
 
 def soil_yield_summary(df):
 
     return (
+
         df.groupby("Soil_Type")
+
         .agg(
-            Total_Yield=("Yield_tons", "sum"),
-            Average_Yield=("Yield_tons", "mean"),
-            Farms=("Soil_Type", "count")
+
+            Total_Yield=(
+                "Yield_tons",
+                "sum"
+            ),
+
+            Average_Yield=(
+                "Yield_tons",
+                "mean"
+            )
+
         )
+
         .reset_index()
-        .sort_values(
-            by="Total_Yield",
-            ascending=False
-        )
+
     )
 
-
 # =====================================================
-# IRRIGATION-WISE YIELD
+# IRRIGATION YIELD SUMMARY
 # =====================================================
 
 def irrigation_yield_summary(df):
 
     return (
+
         df.groupby("Irrigation_Type")
+
         .agg(
-            Total_Yield=("Yield_tons", "sum"),
-            Average_Yield=("Yield_tons", "mean"),
-            Farms=("Irrigation_Type", "count")
+
+            Total_Yield=(
+                "Yield_tons",
+                "sum"
+            ),
+
+            Average_Yield=(
+                "Yield_tons",
+                "mean"
+            )
+
         )
+
         .reset_index()
-        .sort_values(
-            by="Total_Yield",
-            ascending=False
-        )
+
     )
-
-
-# =====================================================
-# TOP CROPS
-# =====================================================
-
-def top_crops(df, top_n=10):
-
-    crop_df = crop_yield_summary(df)
-
-    return crop_df.head(top_n)
-
-
-# =====================================================
-# BOTTOM CROPS
-# =====================================================
-
-def bottom_crops(df, top_n=10):
-
-    crop_df = crop_yield_summary(df)
-
-    return crop_df.tail(top_n)
-
-
-# =====================================================
-# BEST CROP
-# =====================================================
-
-def best_crop(df):
-
-    crop_df = crop_yield_summary(df)
-
-    return crop_df.iloc[0]["Crop_Type"]
-
-
-# =====================================================
-# BEST SEASON
-# =====================================================
-
-def best_season(df):
-
-    season_df = season_yield_summary(df)
-
-    return season_df.iloc[0]["Season"]
-
-
-# =====================================================
-# BEST SOIL
-# =====================================================
-
-def best_soil(df):
-
-    soil_df = soil_yield_summary(df)
-
-    return soil_df.iloc[0]["Soil_Type"]
-
-
-# =====================================================
-# BEST IRRIGATION
-# =====================================================
-
-def best_irrigation(df):
-
-    irrigation_df = irrigation_yield_summary(df)
-
-    return irrigation_df.iloc[0]["Irrigation_Type"]
-
 
 # =====================================================
 # CROP RANKING
@@ -283,101 +197,157 @@ def crop_ranking(df):
 
     ranking = crop_yield_summary(df)
 
-    ranking["Rank"] = range(
-        1,
-        len(ranking) + 1
+    ranking["Rank"] = (
+
+        ranking["Total_Yield"]
+
+        .rank(
+
+            ascending=False,
+
+            method="dense"
+
+        )
+
+        .astype(int)
+
     )
 
-    return ranking[
-        [
-            "Rank",
-            "Crop_Type",
-            "Total_Yield",
-            "Average_Yield"
-        ]
-    ]
-
+    return ranking.sort_values("Rank")
 
 # =====================================================
-# YIELD PARETO ANALYSIS
+# TOP CROPS
+# =====================================================
+
+def top_crops(
+    df,
+    top_n=10
+):
+
+    return crop_yield_summary(
+        df
+    ).head(top_n)
+
+# =====================================================
+# BOTTOM CROPS
+# =====================================================
+
+def bottom_crops(
+    df,
+    top_n=10
+):
+
+    return crop_yield_summary(
+        df
+    ).tail(top_n)
+
+# =====================================================
+# PARETO ANALYSIS
 # =====================================================
 
 def pareto_yield_analysis(df):
 
     pareto = (
+
         df.groupby("Crop_Type")
+
         ["Yield_tons"]
+
         .sum()
+
         .reset_index()
-    )
 
-    pareto = pareto.sort_values(
-        by="Yield_tons",
-        ascending=False
-    )
+        .sort_values(
 
-    pareto["Cumulative_Yield"] = (
-        pareto["Yield_tons"]
-        .cumsum()
+            "Yield_tons",
+
+            ascending=False
+
+        )
+
     )
 
     pareto["Cumulative_%"] = (
 
-        pareto["Cumulative_Yield"]
+        pareto["Yield_tons"]
+
+        .cumsum()
 
         /
 
         pareto["Yield_tons"].sum()
 
-    ) * 100
+        * 100
+
+    )
 
     return pareto
 
-
 # =====================================================
-# CROP VS SOIL HEATMAP DATA
+# CROP SOIL HEATMAP
 # =====================================================
 
 def crop_soil_heatmap(df):
 
     return pd.pivot_table(
+
         df,
+
         values="Yield_tons",
+
         index="Crop_Type",
+
         columns="Soil_Type",
-        aggfunc="mean"
+
+        aggfunc="mean",
+
+        fill_value=0
+
     )
 
-
 # =====================================================
-# CROP VS IRRIGATION HEATMAP DATA
+# CROP IRRIGATION HEATMAP
 # =====================================================
 
 def crop_irrigation_heatmap(df):
 
     return pd.pivot_table(
+
         df,
+
         values="Yield_tons",
+
         index="Crop_Type",
+
         columns="Irrigation_Type",
-        aggfunc="mean"
+
+        aggfunc="mean",
+
+        fill_value=0
+
     )
 
-
 # =====================================================
-# SEASON VS CROP HEATMAP DATA
+# SEASON CROP HEATMAP
 # =====================================================
 
 def season_crop_heatmap(df):
 
     return pd.pivot_table(
-        df,
-        values="Yield_tons",
-        index="Season",
-        columns="Crop_Type",
-        aggfunc="mean"
-    )
 
+        df,
+
+        values="Yield_tons",
+
+        index="Season",
+
+        columns="Crop_Type",
+
+        aggfunc="mean",
+
+        fill_value=0
+
+    )
 
 # =====================================================
 # YIELD DISTRIBUTION SUMMARY
@@ -385,120 +355,101 @@ def season_crop_heatmap(df):
 
 def yield_distribution_summary(df):
 
-    yield_col = df["Yield_tons"]
+    yield_data = df["Yield_tons"]
 
-    summary = {
+    return pd.DataFrame({
 
-        "Mean":
-        round(yield_col.mean(), 2),
+        "Metric": [
 
-        "Median":
-        round(yield_col.median(), 2),
+            "Mean",
 
-        "Minimum":
-        round(yield_col.min(), 2),
+            "Median",
 
-        "Maximum":
-        round(yield_col.max(), 2),
+            "Minimum",
 
-        "Standard Deviation":
-        round(yield_col.std(), 2),
+            "Maximum",
 
-        "Variance":
-        round(yield_col.var(), 2),
+            "Standard Deviation",
 
-        "Q1":
-        round(
-            yield_col.quantile(0.25),
-            2
-        ),
+            "Variance",
 
-        "Q3":
-        round(
-            yield_col.quantile(0.75),
-            2
-        )
+            "Q1",
 
-    }
+            "Q3"
 
-    return pd.DataFrame(
-        summary.items(),
-        columns=["Metric", "Value"]
-    )
+        ],
 
+        "Value": [
+
+            yield_data.mean(),
+
+            yield_data.median(),
+
+            yield_data.min(),
+
+            yield_data.max(),
+
+            yield_data.std(),
+
+            yield_data.var(),
+
+            yield_data.quantile(0.25),
+
+            yield_data.quantile(0.75)
+
+        ]
+
+    })
 
 # =====================================================
-# FARM PERFORMANCE TABLE
+# FARM PERFORMANCE
 # =====================================================
 
 def farm_performance(df):
 
-    columns = [
-        "Farm_ID",
-        "Crop_Type",
-        "Yield_tons"
-    ]
+    if "Farm_Area_acres" not in df.columns:
 
-    if "Farm_Area_acres" in df.columns:
+        return pd.DataFrame()
 
-        temp = create_yield_efficiency(df)
+    result = (
 
-        columns.append(
-            "Yield_Per_Acre"
+        df.groupby("Crop_Type")
+
+        .agg(
+
+            Total_Yield=(
+                "Yield_tons",
+                "sum"
+            ),
+
+            Total_Farm_Area=(
+                "Farm_Area_acres",
+                "sum"
+            )
+
         )
 
-        return temp[
-            columns
-        ].sort_values(
-            by="Yield_tons",
-            ascending=False
-        )
+        .reset_index()
 
-    return df[
-        columns
-    ].sort_values(
-        by="Yield_tons",
-        ascending=False
     )
 
+    result["Yield_Per_Acre"] = np.where(
 
-# =====================================================
-# EXECUTIVE YIELD SUMMARY
-# =====================================================
+        result["Total_Farm_Area"] > 0,
 
-def executive_yield_summary(df):
+        result["Total_Yield"]
+        /
+        result["Total_Farm_Area"],
 
-    return {
+        0
 
-        "Total Yield":
-        total_yield(df),
+    )
 
-        "Average Yield":
-        average_yield(df),
+    return result.sort_values(
 
-        "Median Yield":
-        median_yield(df),
+        "Yield_Per_Acre",
 
-        "Maximum Yield":
-        maximum_yield(df),
+        ascending=False
 
-        "Minimum Yield":
-        minimum_yield(df),
-
-        "Yield Per Acre":
-        yield_per_acre(df),
-
-        "Best Crop":
-        best_crop(df),
-
-        "Best Season":
-        best_season(df),
-
-        "Best Soil":
-        best_soil(df),
-
-        "Best Irrigation":
-        best_irrigation(df)
-
-    }
-    }
+    )
+    
