@@ -473,3 +473,62 @@ def water_benchmark(df):
 
     return result
     
+# =====================================================
+# WATER PARETO ANALYSIS
+# =====================================================
+
+def water_pareto_analysis(df):
+
+    result = (
+
+        df.groupby("Crop_Type")
+
+        .agg(
+
+            Total_Water=(
+
+                "Water_Usage_cubic_meters",
+
+                "sum"
+
+            )
+
+        )
+
+        .reset_index()
+
+        .sort_values(
+
+            "Total_Water",
+
+            ascending=False
+
+        )
+
+    )
+
+    total_water = result[
+        "Total_Water"
+    ].sum()
+
+    if total_water > 0:
+
+        result["Cumulative_%"] = (
+
+            result["Total_Water"]
+
+            .cumsum()
+
+            /
+
+            total_water
+
+            * 100
+
+        )
+
+    else:
+
+        result["Cumulative_%"] = 0
+
+    return result
